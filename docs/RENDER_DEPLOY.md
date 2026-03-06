@@ -13,7 +13,7 @@ You need a public HTTPS backend for release builds.
 2. In Render dashboard, choose **New +** -> **Blueprint**.
 3. Select the repo and deploy `render.yaml`.
 4. Fill all `sync: false` environment values:
-   - `MONGODB_URI` (for your current setup: `mongodb+srv://project:project@cluster0.kos1k7l.mongodb.net/God`)
+   - `MONGODB_URI` (for your current setup: ``)
    - `JWT_SECRET` (minimum 32 chars)
    - `CORS_ORIGINS` (for example: `https://divya.app,https://admin.divya.app`)
    - `PUBLIC_API_BASE_URL` (for example: `https://<your-service>.onrender.com`)

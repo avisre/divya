@@ -1,0 +1,5 @@
+DIVYA_API_URL = http://localhost:5000/api
+REVENUECAT_API_KEY_IOS = appl_placeholder
+STRIPE_PUBLISHABLE_KEY = pk_test_placeholder
+MIXPANEL_TOKEN = placeholder
+

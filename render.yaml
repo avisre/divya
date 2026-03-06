@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: divya-backend
+    runtime: node
+    rootDir: backend
+    plan: starter
+    autoDeploy: false
+    buildCommand: npm ci
+    startCommand: npm run start
+    healthCheckPath: /health/ready
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: DISABLE_PAYMENTS
+        value: "true"
+      - key: ENABLE_SIMULATOR_API
+        value: "false"
+      - key: ENABLE_OBSERVABILITY_INGEST
+        value: "true"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 30d
+      - key: PUBLIC_API_BASE_URL
+        sync: false
+      - key: ADMIN_DASHBOARD_URL
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        value: noreply@divya.app
+      - key: FROM_NAME
+        value: Divya - Sacred Prayer App
+      - key: ADMIN_BOOKING_ALERT_EMAILS
+        value: avinashsreekumar007@gmail.com
+      - key: CONTACT_ALERT_EMAILS
+        value: avinashsreekumar007@gmail.com
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: MIXPANEL_TOKEN
+        sync: false

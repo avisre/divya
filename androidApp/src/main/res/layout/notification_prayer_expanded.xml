@@ -1,0 +1,28 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#FFF8F0"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/prayer_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#FF6B00"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/rep_detail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#D9A826" />
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:max="100"
+        android:progressDrawable="@drawable/progress_gold" />
+</LinearLayout>

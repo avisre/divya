@@ -24,7 +24,7 @@ fun readConfig(name: String, defaultValue: String): String {
 }
 
 val apiUrlDebug = readConfig("DIVYA_API_URL_DEBUG", readConfig("DIVYA_API_URL", "http://10.0.2.2:5000/api"))
-val apiUrlRelease = readConfig("DIVYA_API_URL_RELEASE", "https://divya.app/api")
+val apiUrlRelease = readConfig("DIVYA_API_URL_RELEASE", "https://divya-twug.onrender.com/api")
 val apiUrlDevice = readConfig("DIVYA_API_URL_DEVICE", readConfig("DIVYA_API_URL", "http://10.0.2.2:5000/api"))
 val playUploadStoreFile = readConfig("PLAY_UPLOAD_STORE_FILE", "")
 val playUploadStorePassword = readConfig("PLAY_UPLOAD_STORE_PASSWORD", "")
@@ -152,4 +152,12 @@ tasks.register("verifyAudioReleaseGate") {
     group = "verification"
     description = "Runs audio/player-focused tests and fails release if any fail."
     dependsOn("testDebugUnitTest")
+}
+
+tasks.matching { task ->
+    task.name in setOf("generateDebugBuildConfig", "generateReleaseBuildConfig")
+}.configureEach {
+    inputs.property("divya.api.debug", apiUrlDebug)
+    inputs.property("divya.api.device", apiUrlDevice)
+    inputs.property("divya.api.release", apiUrlRelease)
 }

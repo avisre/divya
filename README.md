@@ -9,6 +9,7 @@ Divya is a Kotlin Multiplatform Mobile prayer app for the Hindu diaspora, center
 - `androidApp/`: Android Jetpack Compose shell
 - `iosApp/`: iOS SwiftUI shell
 - `admin/`: React + Vite admin dashboard shell
+- `web/`: React + Vite consumer web app
 
 ## Status
 
@@ -49,6 +50,57 @@ Explicit exclusions for this release track:
 3. Open booking simulator:
    - Route: `/simulator`
    - Requires `ENABLE_SIMULATOR_API=true` on backend.
+
+## Web
+
+1. Install packages:
+   ```bash
+   cd web
+   npm install
+   ```
+2. Copy environment defaults if needed:
+   ```bash
+   cp .env.example .env
+   ```
+3. Run the consumer web app:
+   ```bash
+   npm run dev
+   ```
+   - Local development proxies `/api` and `/socket.io` to the live Render backend, so browser CORS stays out of the way.
+4. Production build:
+   ```bash
+   npm run build
+   ```
+5. Browser smoke tests:
+   ```bash
+   npm run test
+   npm run test:e2e
+   ```
+6. Functional API audit report:
+   ```bash
+   npm run audit:functional
+   ```
+   - Output file: `artifacts/web-functionality-audit.md`
+
+The web app uses the existing backend API and Socket.IO server. It does not connect directly to MongoDB from the browser.
+
+### Web Deployment
+
+- A Render static-site blueprint is included in the root [render.yaml](render.yaml).
+- Set the backend `CORS_ORIGINS` to include the deployed web origin and backend origin, for example:
+  ```text
+  CORS_ORIGINS=https://divya-web.onrender.com,https://divya-twug.onrender.com
+  ```
+- Web environment variables:
+  ```text
+  VITE_API_BASE_URL=https://divya-twug.onrender.com/api
+  VITE_SOCKET_BASE_URL=https://divya-twug.onrender.com
+  ```
+- Public legal/support routes in web:
+  - `/sitemap`
+  - `/privacy`
+  - `/terms`
+  - `/contact-us`
 
 ## KMM
 

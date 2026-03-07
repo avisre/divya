@@ -68,7 +68,7 @@ fun GuestExploreScreen(onOpen: (String) -> Unit) {
             }
         }
         item {
-            PrayerCard(AppContent.navarnaMantra) { onOpen(DivyaRoutes.prayer.route) }
+            PrayerCard(AppContent.navarnaMantra) { onOpen(DivyaRoutes.prayerFor(AppContent.navarnaMantra.id)) }
         }
         item {
             PanelCard(

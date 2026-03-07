@@ -19,7 +19,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="app-shell">
       <header className="top-nav">
         <Link to="/home" className="brand-mark">
-          <span className="brand-coin">Om</span>
+          <span className="brand-coin">
+            <span className="brand-coin-text">Om</span>
+          </span>
           <div>
             <strong>Divya</strong>
             <span>Bhadra Bhagavathi for the diaspora</span>

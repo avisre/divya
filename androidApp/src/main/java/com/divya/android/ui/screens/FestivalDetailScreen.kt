@@ -36,7 +36,7 @@ fun FestivalDetailScreen(onOpen: (String) -> Unit) {
             )
         }
         item {
-            Button(onClick = { onOpen(DivyaRoutes.prayer.route) }, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { onOpen(DivyaRoutes.prayerFor(prep.prepPrayer.id)) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Start today's festival prayer")
             }
         }

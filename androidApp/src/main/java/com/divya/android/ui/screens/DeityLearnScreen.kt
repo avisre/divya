@@ -54,7 +54,7 @@ fun DeityLearnScreen(onOpen: (String) -> Unit) {
             }
         }
         item {
-            Button(onClick = { onOpen(DivyaRoutes.prayer.route) }, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { onOpen(DivyaRoutes.prayerFor(AppContent.navarnaMantra.id)) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Practice linked prayer")
             }
         }

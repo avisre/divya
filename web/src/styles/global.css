@@ -135,15 +135,28 @@ h3 {
 }
 
 .brand-coin {
-  display: grid;
-  place-items: center;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 3.25rem;
   height: 3.25rem;
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(245, 201, 107, 0.9), rgba(232, 106, 23, 0.26));
   color: var(--deep-brown);
+  overflow: hidden;
+}
+
+.brand-coin-text {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: "Cormorant Garamond", serif;
   font-size: 1.5rem;
+  line-height: 1;
+  transform: translateX(0.02em);
 }
 
 .top-links,
@@ -699,6 +712,9 @@ h3 {
   .brand-coin {
     width: 2.5rem;
     height: 2.5rem;
+  }
+
+  .brand-coin-text {
     font-size: 1.2rem;
   }
 

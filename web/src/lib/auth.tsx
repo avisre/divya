@@ -18,6 +18,8 @@ type AuthContextValue = {
     timezone?: string;
   }) => Promise<AuthResponse>;
   continueAsGuest: () => Promise<AuthResponse>;
+  startOAuth: (provider: "google" | "github", returnTo?: string) => void;
+  completeOAuth: (token: string) => Promise<UserSession>;
   refreshProfile: () => Promise<UserSession | null>;
   updateLocalUser: (user: UserSession) => void;
   logout: () => void;
@@ -83,6 +85,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login: (payload) => commitAuth(authApi.login(payload)),
       register: (payload) => commitAuth(authApi.register(payload)),
       continueAsGuest: () => commitAuth(authApi.guest()),
+      startOAuth: (provider, returnTo = "/home") => {
+        window.location.assign(authApi.oauthStartUrl(provider, returnTo));
+      },
+      completeOAuth: async (tokenValue) => {
+        const profile = await authApi.meWithToken(tokenValue);
+        setStoredSession({ token: tokenValue, user: profile.user });
+        return profile.user;
+      },
       refreshProfile: async () => {
         const existing = getStoredSession();
         if (!existing?.token) return null;

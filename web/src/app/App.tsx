@@ -14,6 +14,7 @@ import LearningPathPage from "@/pages/LearningPathPage";
 import LearningModulePage from "@/pages/LearningModulePage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import OAuthCallbackPage from "@/pages/OAuthCallbackPage";
 import BookingsPage from "@/pages/BookingsPage";
 import BookingDetailPage from "@/pages/BookingDetailPage";
 import VideoPage from "@/pages/VideoPage";
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/deities/:id" element={<DeityDetailPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
         <Route path="/contact-us" element={<ContactUsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />

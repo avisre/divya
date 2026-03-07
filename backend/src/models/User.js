@@ -109,6 +109,14 @@ const sharedSessionSummarySchema = new mongoose.Schema(
   { _id: false }
 );
 
+const oauthAccountSchema = new mongoose.Schema(
+  {
+    id: { type: String, trim: true },
+    email: { type: String, lowercase: true, trim: true }
+  },
+  { _id: false }
+);
+
 const audioComingSoonSubscriptionSchema = new mongoose.Schema(
   {
     prayerId: { type: mongoose.Schema.Types.ObjectId, ref: "Prayer", required: true },
@@ -152,6 +160,10 @@ const userSchema = new mongoose.Schema({
   deviceTokens: [deviceTokenSchema],
   learningProgress: [learningProgressSchema],
   sharedSessions: [sharedSessionSummarySchema],
+  oauth: {
+    google: oauthAccountSchema,
+    github: oauthAccountSchema
+  },
   giftsGiven: [{ type: mongoose.Schema.Types.ObjectId, ref: "PujaBooking" }],
   giftsReceived: [{ type: mongoose.Schema.Types.ObjectId, ref: "PujaBooking" }],
   audioComingSoonSubscriptions: [audioComingSoonSubscriptionSchema],

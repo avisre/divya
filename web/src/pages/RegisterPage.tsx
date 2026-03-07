@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { browserTimezone } from "@/lib/time";
 import { Button } from "@/components/ui/Button";
 import { HeroSection, SectionCard, StatusStrip } from "@/components/ui/Surface";
+import { OAuthButtons } from "@/components/forms/OAuthButtons";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ export default function RegisterPage() {
       <HeroSection eyebrow="Create your account" title="Keep prayers, bookings, and reminders in one place" />
       <SectionCard title="Registration">
         <form className="stack-form" onSubmit={onSubmit}>
+          <OAuthButtons returnTo="/home" />
+          <div className="oauth-divider">or create with email</div>
           <label>
             Name
             <input {...form.register("name")} />

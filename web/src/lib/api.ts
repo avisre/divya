@@ -19,7 +19,7 @@ import type {
 import { readCachedJson, writeCachedJson } from "@/lib/cache";
 
 const REMOTE_API_BASE_URL = "https://divya-twug.onrender.com/api";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "/api" : REMOTE_API_BASE_URL);
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "/api" : REMOTE_API_BASE_URL);
 export const SOCKET_BASE_URL =
   import.meta.env.VITE_SOCKET_BASE_URL ||
   (import.meta.env.DEV ? window.location.origin : API_BASE_URL.replace(/\/api$/, ""));
@@ -112,6 +112,32 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ sessionsBeforeSignup })
     }, { skipAuth: true });
+  },
+  oauthProviders() {
+    return apiFetch<{ providers: Array<{ id: string; enabled: boolean }> }>("/auth/oauth/providers", undefined, {
+      skipAuth: true
+    });
+  },
+  oauthStartUrl(provider: string, returnTo = "/home") {
+    const safeReturnTo = returnTo.startsWith("/") ? returnTo : "/home";
+    return `${API_BASE_URL}/auth/oauth/${encodeURIComponent(provider)}/start?returnTo=${encodeURIComponent(safeReturnTo)}`;
+  },
+  async meWithToken(token: string) {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    if (!response.ok) {
+      let payload: ApiErrorPayload | null = null;
+      try {
+        payload = (await response.json()) as ApiErrorPayload;
+      } catch {
+        payload = null;
+      }
+      throw new HttpError(payload?.message || response.statusText, response.status, payload);
+    }
+    return (await response.json()) as { user: UserSession };
   },
   me() {
     return apiFetch<{ user: UserSession }>("/auth/me");

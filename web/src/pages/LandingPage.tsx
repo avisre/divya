@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { HeroSection, SectionCard, StatusStrip } from "@/components/ui/Surface";
 import { Button } from "@/components/ui/Button";
 import { PrayerCard } from "@/components/cards/PrayerCard";
+import { OAuthButtons } from "@/components/forms/OAuthButtons";
 
 export default function LandingPage() {
   const { continueAsGuest } = useAuth();
@@ -22,20 +23,22 @@ export default function LandingPage() {
   return (
     <div className="page-stack">
       <HeroSection
-        eyebrow="Sacred prayer for the diaspora"
-        title="Keep Bhadra Bhagavathi close, wherever you live."
-        subtitle="Daily prayers, local-time panchang, Kerala temple rituals, and sacred puja waitlists for families living far from home."
+        eyebrow="Divya for diaspora families"
+        title="Temple connection, every day, from wherever you live."
+        subtitle="Prayers with audio, local-time panchang, temple rituals, and puja waitlists in one clear web experience."
         actions={
           <>
-            <Button onClick={() => void continueAsGuest()}>Continue as guest</Button>
-            <Link to="/register" className="btn btn-secondary">
-              Create account
+            <Link to="/login" className="btn btn-primary">
+              Start with OAuth
             </Link>
+            <Button tone="secondary" onClick={() => void continueAsGuest()}>
+              Continue as guest
+            </Button>
           </>
         }
       >
         <div className="hero-side-card">
-          <div className="eyebrow">What the web app gives you</div>
+          <div className="eyebrow">What you get immediately</div>
           <div className="metric-grid compact-grid">
             <div className="metric-card">
               <strong>{audioReadyCount}</strong>
@@ -47,7 +50,7 @@ export default function LandingPage() {
             </div>
             <div className="metric-card">
               <strong>Guest</strong>
-              <span>Browse before signup</span>
+              <span>No login wall</span>
             </div>
             <div className="metric-card">
               <strong>Local time</strong>
@@ -57,19 +60,35 @@ export default function LandingPage() {
         </div>
       </HeroSection>
 
-      <SectionCard title="Designed for families abroad" subtitle="The product is optimized for distance, timezone shifts, and second-generation clarity.">
+      <SectionCard title="Sign in your way" subtitle="OAuth and email are both supported.">
+        <div className="content-grid single-column">
+          <article className="content-card">
+            <OAuthButtons returnTo="/home" />
+            <div className="inline-actions">
+              <Link to="/register" className="btn btn-secondary">
+                Create with email
+              </Link>
+              <Link to="/login" className="btn btn-ghost">
+                Existing account
+              </Link>
+            </div>
+          </article>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Designed for families abroad" subtitle="Built for users who cannot walk to a temple daily.">
         <div className="content-grid">
           <article className="content-card">
-            <h3>Temple connection without a local temple visit</h3>
-            <p>Prayer, temple details, puja waitlists, and video delivery are all structured for devotees living abroad.</p>
+            <h3>Temple connection without travel</h3>
+            <p>Prayer, panchang, temple details, and puja tracking are structured for devotees living in different timezones.</p>
           </article>
           <article className="content-card">
             <h3>English-first, still spiritually grounded</h3>
-            <p>Script, transliteration, and meaning stay visible together so families can pray across generations without friction.</p>
+            <p>Script, transliteration, and meaning stay together so first-generation and second-generation devotees can pray together.</p>
           </article>
           <article className="content-card">
-            <h3>Daily utility, not just static content</h3>
-            <p>Panchang, daily recommendation, streak cues, and festival preparation give the site a reason to be opened every day.</p>
+            <h3>Daily utility, not static content</h3>
+            <p>Panchang guidance, daily recommendations, and reminders make the app useful every day, not only on festival dates.</p>
           </article>
         </div>
       </SectionCard>
@@ -95,7 +114,7 @@ export default function LandingPage() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Trust, support, and clarity" subtitle="The web app should feel reliable before a user ever books a puja.">
+      <SectionCard title="Trust, support, and clarity" subtitle="Support and policy pages are exposed directly in the main navigation.">
         <div className="content-grid">
           <article className="content-card">
             <h3>Support when gothram or booking details are unclear</h3>
@@ -118,7 +137,7 @@ export default function LandingPage() {
           </article>
         </div>
         <StatusStrip tone="neutral">
-          Prayer text and audio on the web app are served from the same Mongo-backed API used by the mobile product.
+          Web and mobile both use the same MongoDB-backed API for prayer content, booking status, and user profile data.
         </StatusStrip>
       </SectionCard>
     </div>

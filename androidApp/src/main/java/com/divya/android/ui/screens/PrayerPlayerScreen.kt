@@ -91,15 +91,12 @@ fun PrayerPlayerScreen(
 
     val selectedPrayer = catalog.firstOrNull { it.id == selectedPrayerId } ?: AppContent.gayatri
     val isEntitled = entitlements[selectedPrayer.id]?.entitled ?: true
-    val bundledPrayer = remember(selectedPrayer.slug, selectedPrayer.title.en) {
-        AppContent.prayerLibrary108.firstOrNull { localPrayer ->
-            localPrayer.slug.equals(selectedPrayer.slug, ignoreCase = true) ||
-                normalizePrayerKey(localPrayer.title.en) == normalizePrayerKey(selectedPrayer.title.en)
-        }
+    val bundledAudioUrl = remember(selectedPrayer.id, selectedPrayer.slug, selectedPrayer.title.en) {
+        resolveBundledAudioUrl(selectedPrayer)
     }
-    val bundledAudioUrl = bundledPrayer?.audioUrl
     val resolvedAudioUrl =
         bundledAudioUrl
+            ?: audioMetadata?.streamUrl
             ?: audioMetadata?.url
             ?: selectedPrayer.audioUrl
     val sourceUri = remember(resolvedAudioUrl) {
@@ -544,6 +541,64 @@ fun PrayerPlayerScreen(
             }
         }
     }
+}
+
+private val canonicalBundledAudioBySlug = mapOf(
+    "mahishasura-mardini" to "raw://mahishasura_mardini_stotram",
+    "mahishasura-mardini-stotram" to "raw://mahishasura_mardini_stotram",
+    "navarna-mantra" to "raw://navarna_mantra",
+    "ya-devi-sarvabhuteshu" to "raw://ya_devi_sarvabhuteshu",
+    "devi-mahatmyam-shloka" to "raw://ya_devi_sarvabhuteshu",
+    "kerala-bhagavathi-stuti" to "raw://kerala_bhagavathi_stuti",
+    "lalitha-sahasranama-108" to "raw://lalitha_sahasranama_108",
+    "gayatri-mantra" to "raw://gayatri_mantra",
+    "ganesh-aarti" to "raw://ganesh_aarti",
+    "hanuman-chalisa" to "raw://hanuman_chalisa",
+    "maha-mrityunjaya" to "raw://maha_mrityunjaya",
+    "maha-mrityunjaya-mantra" to "raw://maha_mrityunjaya",
+    "lakshmi-aarti" to "raw://lakshmi_aarti",
+    "saraswati-vandana" to "raw://saraswati_vandana",
+    "shiva-panchakshara" to "raw://shiva_panchakshara",
+    "om-namah-shivaya" to "raw://om_namah_shivaya",
+    "durga-chalisa" to "raw://durga_chalisa",
+    "krishna-aarti" to "raw://krishna_aarti",
+    "surya-mantra" to "raw://surya_mantra",
+    "shanti-mantra" to "raw://shanti_mantra",
+    "vishnu-sahasranama-108" to "raw://vishnu_sahasranama_108",
+    "pratah-smaranam" to "raw://morning_prayer",
+    "morning-prayer" to "raw://morning_prayer",
+    "nirvana-shatakam" to "raw://nirvana_shatakam",
+)
+
+private fun resolveBundledAudioUrl(prayer: Prayer): String? {
+    val normalizedSlug = prayer.slug.trim().lowercase()
+    val normalizedTitle = normalizePrayerKey(prayer.title.en)
+
+    val byId = AppContent.prayerLibrary108.firstOrNull { localPrayer ->
+        localPrayer.id.equals(prayer.id, ignoreCase = true)
+    }?.audioUrl
+
+    val bySlug = AppContent.prayerLibrary108.firstOrNull { localPrayer ->
+        localPrayer.slug.equals(prayer.slug, ignoreCase = true)
+    }?.audioUrl
+
+    val byTitle = AppContent.prayerLibrary108.firstOrNull { localPrayer ->
+        normalizePrayerKey(localPrayer.title.en) == normalizedTitle
+    }?.audioUrl
+
+    val canonicalBySlug = canonicalBundledAudioBySlug[normalizedSlug]
+    val canonicalByTitle = canonicalBundledAudioBySlug.entries
+        .firstOrNull { normalizePrayerKey(it.key) == normalizedTitle }
+        ?.value
+
+    return listOf(
+        byId,
+        bySlug,
+        byTitle,
+        canonicalBySlug,
+        canonicalByTitle,
+        prayer.audioUrl?.takeIf { it.startsWith("raw://") },
+    ).firstOrNull { !it.isNullOrBlank() }
 }
 
 private fun previewLine(text: String?): String? {

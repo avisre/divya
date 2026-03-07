@@ -53,3 +53,21 @@ services:
         sync: false
       - key: MIXPANEL_TOKEN
         sync: false
+  - type: web
+    name: divya-web
+    runtime: static
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    pullRequestPreviewsEnabled: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: VITE_API_BASE_URL
+        value: https://divya-twug.onrender.com/api
+      - key: VITE_SOCKET_BASE_URL
+        value: https://divya-twug.onrender.com

@@ -87,6 +87,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
             title = "Manage your profile",
             subtitle = "Keep your reminders, account details, timezone, and support options in one place.",
             badge = session.user?.let { if (it.isGuest) "Guest session" else "Signed in" } ?: "Offline",
+            heroVariant = HeroCardVariant.PROFILE,
             heroStats = listOf(
                 HeroStat(
                     if ((liveStreak?.current ?: 0) > 0) "${liveStreak?.current} days" else "Not started",
@@ -97,7 +98,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
                 HeroStat("Morning + evening", "Reminder cadence"),
             ),
         ) {
-            item { DividerLabel("Account") }
+            SectionHeader("Account")
 
             item {
                 PanelCard(title = "Account details", subtitle = "Review your identity, location, and preferred devotional context.") {
@@ -142,7 +143,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
                 }
             }
 
-            item { DividerLabel("Reminders") }
+            SectionHeader("Reminders")
 
             item {
                 PanelCard(title = "Reminder settings", subtitle = "Choose the prayer windows that fit your day.") {
@@ -203,7 +204,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
                 }
             }
 
-            item { DividerLabel("Support") }
+            SectionHeader("Support")
 
             item {
                 PanelCard(title = "Support and contact", subtitle = "Reach support quickly for booking, gothram, or technical help.") {
@@ -222,7 +223,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
                 }
             }
 
-            item { DividerLabel("Heritage") }
+            SectionHeader("Heritage")
 
             item {
                 PanelCard(title = "Language and tradition", subtitle = "Review the language and devotional context currently guiding the app.") {

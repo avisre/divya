@@ -8,10 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.divya.android.media.PrayerAudioPlayer
 import com.divya.android.navigation.DivyaRoutes
+import com.divya.android.ui.theme.Clay
 import com.divya.android.ui.theme.DeepBrown
 import com.divya.android.ui.theme.Saffron
 import com.divya.android.ui.theme.TempleGold
@@ -37,6 +38,7 @@ import com.divya.android.ui.theme.TempleGold
 fun NowPlayingScreen(onOpen: (String) -> Unit) {
     val state by PrayerAudioPlayer.state.collectAsState()
     val isCompactPhone = LocalConfiguration.current.screenWidthDp < 390
+    val hasActivePrayer = !state.prayerId.isNullOrBlank() || state.durationMs > 0L || state.title != null
     var isScrubbing by remember { mutableStateOf(false) }
     var scrubValue by remember(state.sourceToken) { mutableFloatStateOf(state.progressFraction) }
 
@@ -48,56 +50,85 @@ fun NowPlayingScreen(onOpen: (String) -> Unit) {
 
     ScreenScaffold(
         eyebrow = "Audio controls",
-        title = state.title ?: "No active prayer",
-        subtitle = "The persistent player keeps full control in one place while the prayer page stays focused on practice.",
-        badge = if (state.isPlaying) "Playing" else "Paused",
+        title = if (hasActivePrayer) (state.title ?: "Now playing") else "Now playing",
+        subtitle = if (hasActivePrayer) {
+            "The persistent player keeps full control in one place while the prayer page stays focused on practice."
+        } else {
+            "Nothing playing yet"
+        },
+        badge = if (!hasActivePrayer) "Choose a prayer" else if (state.isPlaying) "Playing" else "Paused",
         heroVariant = HeroCardVariant.PRAYER,
-        heroStats = listOf(
-            HeroStat("${state.playbackSpeed}x", "Playback speed"),
-            HeroStat("${(state.progressFraction * 100).toInt()}%", "Progress"),
-            HeroStat(formatDuration(state.currentPositionMs), "Elapsed"),
-            HeroStat(formatDuration(state.durationMs), "Duration"),
-        ),
+        heroStats = if (hasActivePrayer) {
+            listOf(
+                HeroStat("${state.playbackSpeed}x", "Playback speed"),
+                HeroStat("${(state.progressFraction * 100).toInt()}%", "Progress"),
+                HeroStat(formatDuration(state.currentPositionMs), "Elapsed"),
+                HeroStat(formatDuration(state.durationMs), "Duration"),
+            )
+        } else {
+            emptyList()
+        },
         heroContent = {
-            if (isCompactPhone) {
+            if (!hasActivePrayer) {
+                PrimaryActionButton(
+                    text = "Choose a prayer",
+                    onClick = { onOpen(DivyaRoutes.library.route) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else if (isCompactPhone) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Button(
+                    PrimaryActionButton(
+                        text = "Open prayer",
                         onClick = { onOpen(DivyaRoutes.prayerFor(state.prayerId)) },
                         enabled = !state.prayerId.isNullOrBlank(),
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Open prayer")
-                    }
-                    OutlinedButton(
+                    )
+                    SecondaryActionButton(
+                        text = "Minimize",
                         onClick = { onOpen(DivyaRoutes.home.route) },
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Minimize")
-                    }
+                    )
                 }
             } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    PrimaryActionButton(
+                        text = "Open prayer",
                         onClick = { onOpen(DivyaRoutes.prayerFor(state.prayerId)) },
                         enabled = !state.prayerId.isNullOrBlank(),
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Open prayer")
-                    }
-                    OutlinedButton(
+                    )
+                    SecondaryActionButton(
+                        text = "Minimize",
                         onClick = { onOpen(DivyaRoutes.home.route) },
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Minimize")
-                    }
+                    )
                 }
             }
         },
     ) {
-        item { DividerLabel("Transport") }
+        if (!hasActivePrayer) {
+            item {
+                PanelCard(
+                    title = "Choose a prayer",
+                    subtitle = "Start from the library and the full audio controls will appear here.",
+                ) {
+                    PrimaryActionButton(
+                        text = "Browse prayers",
+                        onClick = { onOpen(DivyaRoutes.library.route) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            return@ScreenScaffold
+        }
+
+        SectionHeader("Transport")
 
         item {
             PanelCard(
@@ -116,35 +147,39 @@ fun NowPlayingScreen(onOpen: (String) -> Unit) {
                     },
                     valueRange = 0f..1f,
                     enabled = state.isReady && state.durationMs > 0,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Saffron,
+                        activeTrackColor = Saffron,
+                        inactiveTrackColor = Clay.copy(alpha = 0.28f),
+                    ),
                 )
                 if (isCompactPhone) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Button(
+                        PrimaryActionButton(
+                            text = if (state.isPlaying) PAUSE_GLYPH else PLAY_GLYPH,
                             onClick = { PrayerAudioPlayer.togglePlayPause() },
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(if (state.isPlaying) PAUSE_GLYPH else PLAY_GLYPH)
-                        }
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            OutlinedButton(
+                            SecondaryActionButton(
+                                text = "-10s",
                                 onClick = { PrayerAudioPlayer.skipBy(-10_000L) },
                                 modifier = Modifier.weight(1f),
-                            ) {
-                                Text("-10s")
-                            }
-                            OutlinedButton(
+                            )
+                            SecondaryActionButton(
+                                text = "+10s",
                                 onClick = { PrayerAudioPlayer.skipBy(10_000L) },
                                 modifier = Modifier.weight(1f),
-                            ) {
-                                Text("+10s")
-                            }
+                            )
                         }
                     }
                 } else {
@@ -152,30 +187,27 @@ fun NowPlayingScreen(onOpen: (String) -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        OutlinedButton(
+                        SecondaryActionButton(
+                            text = "-10s",
                             onClick = { PrayerAudioPlayer.skipBy(-10_000L) },
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Text("-10s")
-                        }
-                        Button(
+                        )
+                        PrimaryActionButton(
+                            text = if (state.isPlaying) PAUSE_GLYPH else PLAY_GLYPH,
                             onClick = { PrayerAudioPlayer.togglePlayPause() },
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Text(if (state.isPlaying) PAUSE_GLYPH else PLAY_GLYPH)
-                        }
-                        OutlinedButton(
+                        )
+                        SecondaryActionButton(
+                            text = "+10s",
                             onClick = { PrayerAudioPlayer.skipBy(10_000L) },
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Text("+10s")
-                        }
+                        )
                     }
                 }
             }
         }
 
-        item { DividerLabel("Speed and session") }
+        SectionHeader("Speed and session")
 
         item {
             PanelCard(
@@ -189,53 +221,48 @@ fun NowPlayingScreen(onOpen: (String) -> Unit) {
                     onSpeedUp = { PrayerAudioPlayer.setSpeed((state.playbackSpeed + 0.25f).coerceAtMost(2f)) },
                 )
                 TextBlock("Current playback speed: ${state.playbackSpeed}x")
-                OutlinedButton(
+                SecondaryActionButton(
+                    text = "Reset speed to 1.0x",
                     onClick = { PrayerAudioPlayer.setSpeed(1f) },
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Reset speed to 1.0x")
-                }
+                )
                 if (isCompactPhone) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        OutlinedButton(
+                        SecondaryActionButton(
+                            text = "Minimize",
                             onClick = { onOpen(DivyaRoutes.home.route) },
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Minimize")
-                        }
-                        Button(
+                        )
+                        PrimaryActionButton(
+                            text = CLOSE_GLYPH,
                             onClick = {
                                 PrayerAudioPlayer.clearCurrent()
                                 onOpen(DivyaRoutes.home.route)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(CLOSE_GLYPH)
-                        }
+                        )
                     }
                 } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        OutlinedButton(
+                        SecondaryActionButton(
+                            text = "Minimize",
                             onClick = { onOpen(DivyaRoutes.home.route) },
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Minimize")
-                        }
-                        Button(
+                        )
+                        PrimaryActionButton(
+                            text = CLOSE_GLYPH,
                             onClick = {
                                 PrayerAudioPlayer.clearCurrent()
                                 onOpen(DivyaRoutes.home.route)
                             },
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Text(CLOSE_GLYPH)
-                        }
+                        )
                     }
                 }
             }
@@ -259,26 +286,24 @@ private fun SpeedAdjustRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                OutlinedButton(
+                SecondaryActionButton(
+                    text = "-",
                     onClick = onSpeedDown,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 52.dp),
-                ) {
-                    Text("-", fontWeight = FontWeight.SemiBold)
-                }
+                )
                 SpeedPill(
                     modifier = Modifier.weight(2f),
                     value = "${playbackSpeed}x",
                 )
-                OutlinedButton(
+                SecondaryActionButton(
+                    text = "+",
                     onClick = onSpeedUp,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 52.dp),
-                ) {
-                    Text("+", fontWeight = FontWeight.SemiBold)
-                }
+                )
             }
         }
     } else {
@@ -286,26 +311,24 @@ private fun SpeedAdjustRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            OutlinedButton(
+            SecondaryActionButton(
+                text = "-",
                 onClick = onSpeedDown,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 52.dp),
-            ) {
-                Text("-", fontWeight = FontWeight.SemiBold)
-            }
+            )
             SpeedPill(
                 modifier = Modifier.weight(2f),
                 value = "${playbackSpeed}x",
             )
-            OutlinedButton(
+            SecondaryActionButton(
+                text = "+",
                 onClick = onSpeedUp,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 52.dp),
-            ) {
-                Text("+", fontWeight = FontWeight.SemiBold)
-            }
+            )
         }
     }
 }

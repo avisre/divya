@@ -105,7 +105,7 @@ fun PrayerLibraryScreen(onOpen: (String) -> Unit) {
             }
         }
 
-        item { DividerLabel("Browse") }
+        SectionHeader("Browse")
 
         item {
             PanelCard(
@@ -227,7 +227,7 @@ fun PrayerLibraryScreen(onOpen: (String) -> Unit) {
             }
         }
 
-        item { DividerLabel("Membership") }
+        SectionHeader("Membership")
 
         item {
             PanelCard(

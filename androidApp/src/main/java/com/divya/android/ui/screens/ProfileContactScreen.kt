@@ -1,11 +1,18 @@
 package com.divya.android.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -20,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -29,9 +37,13 @@ import androidx.compose.ui.unit.dp
 import com.divya.android.BuildConfig
 import com.divya.android.app.ContactFormRequest
 import com.divya.android.app.DivyaRuntime
+import com.divya.android.ui.components.ProductionOutlinedTextField
 import com.divya.android.ui.productionDisplayName
 import com.divya.android.ui.theme.AlertMarigold
+import com.divya.android.ui.theme.Clay
 import com.divya.android.ui.theme.DeepBrown
+import com.divya.android.ui.theme.Ivory
+import com.divya.android.ui.theme.Saffron
 import com.divya.android.ui.theme.SuccessLeaf
 import kotlinx.coroutines.launch
 
@@ -82,50 +94,52 @@ fun ProfileContactScreen() {
             badge = "Profile contact",
             heroStats = listOf(
                 HeroStat("24-48h", "Typical response window"),
-                HeroStat(session.user?.timezone?.ifBlank { DivyaRuntime.getDetectedTimezone() } ?: DivyaRuntime.getDetectedTimezone(), "Your timezone"),
+                HeroStat(
+                    session.user?.timezone?.ifBlank { DivyaRuntime.getDetectedTimezone() } ?: DivyaRuntime.getDetectedTimezone(),
+                    "We respond in your timezone",
+                ),
                 HeroStat("Email", "Response channel"),
                 HeroStat("Tracked", "Request stored in profile"),
             ),
         ) {
             item {
                 PanelCard(title = "Contact details") {
-                    OutlinedTextField(
+                    ProductionOutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Name") },
+                        label = "Name",
                     )
-                    OutlinedTextField(
+                    ProductionOutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Email") },
+                        label = "Email",
                     )
-                    SelectableTagRow(
-                        options = categoryOptions.mapNotNull { categoryLabels[it] },
-                        selected = categoryLabels[category] ?: category,
-                        onSelect = { selectedLabel ->
-                            category = categoryOptions.firstOrNull { categoryLabels[it] == selectedLabel } ?: "general"
-                        },
+                    SupportCategoryChipRow(
+                        options = categoryOptions,
+                        labels = categoryLabels,
+                        selected = category,
+                        onSelect = { category = it },
                     )
-                    OutlinedTextField(
+                    ProductionOutlinedTextField(
                         value = subject,
                         onValueChange = { subject = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Subject") },
+                        label = "Subject",
                     )
-                    OutlinedTextField(
+                    ProductionOutlinedTextField(
                         value = message,
                         onValueChange = { message = it.take(2000) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Message") },
+                        label = "Message",
                         minLines = 5,
                     )
-                    OutlinedTextField(
+                    ProductionOutlinedTextField(
                         value = bookingReference,
                         onValueChange = { bookingReference = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Booking reference (optional)") },
+                        label = "Booking reference (optional)",
                     )
                     InfoRow(label = "Message length", value = "${message.length} / 2000")
                 }
@@ -139,7 +153,8 @@ fun ProfileContactScreen() {
                 }
             }
             item {
-                Button(
+                PrimaryActionButton(
+                    text = "Submit request",
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         val validationError = validate()
@@ -151,7 +166,7 @@ fun ProfileContactScreen() {
                                     actionLabel = "error",
                                 )
                             }
-                            return@Button
+                            return@PrimaryActionButton
                         }
 
                         isSubmitting = true
@@ -197,8 +212,6 @@ fun ProfileContactScreen() {
                 ) {
                     if (isSubmitting) {
                         CircularProgressIndicator()
-                    } else {
-                        Text("Submit request")
                     }
                 }
             }
@@ -221,5 +234,62 @@ fun ProfileContactScreen() {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SupportCategoryChipRow(
+    options: List<String>,
+    labels: Map<String, String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    val scrollState = rememberScrollState()
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(scrollState),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            options.forEach { option ->
+                FilterChip(
+                    selected = selected == option,
+                    onClick = { onSelect(option) },
+                    label = {
+                        Text(
+                            text = labels[option] ?: option,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Saffron.copy(alpha = 0.16f),
+                        selectedLabelColor = DeepBrown,
+                        containerColor = Ivory.copy(alpha = 0.92f),
+                        labelColor = DeepBrown.copy(alpha = 0.8f),
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = selected == option,
+                        borderColor = Clay.copy(alpha = 0.85f),
+                        selectedBorderColor = Saffron.copy(alpha = 0.55f),
+                        borderWidth = 1.dp,
+                        selectedBorderWidth = 1.dp,
+                    ),
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+                .width(40.dp)
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(Ivory.copy(alpha = 0f), Ivory),
+                    ),
+                ),
+        )
     }
 }

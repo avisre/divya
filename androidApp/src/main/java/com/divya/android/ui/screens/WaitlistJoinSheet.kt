@@ -243,7 +243,7 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
                     body = AppContent.waitlistReassurance.joinToString(" "),
                 )
             }
-            item { DividerLabel("Devotee details") }
+            SectionHeader("Devotee details")
             if (detailsSaved) {
                 item {
                     StatusStrip(
@@ -391,7 +391,7 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
                 }
             }
             item { NakshatraPickerSheet() }
-            item { DividerLabel("Prayer intention") }
+            SectionHeader("Prayer intention")
             item {
                 PanelCard(title = "Prayer intention", subtitle = "Minimum 10 characters, maximum 500.") {
                     SelectableTagRow(
@@ -434,7 +434,7 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
                     tags = listOf("Waitlist", "Status updates", "Video ready"),
                 )
             }
-            item { DividerLabel("Review and submit") }
+            SectionHeader("Review and submit")
             item {
                 PanelCard(title = "Request summary") {
                     InfoRow(label = "Presented amount", value = formatPrice(51.0, "USD"))

@@ -34,7 +34,7 @@ fun TempleScreen() {
     ) {
         item { TempleHeroVisualCard() }
 
-        item { DividerLabel("About the temple") }
+        SectionHeader("About the temple")
 
         item {
             PanelCard(
@@ -47,7 +47,7 @@ fun TempleScreen() {
             }
         }
 
-        item { DividerLabel("Ritual windows") }
+        SectionHeader("Ritual windows")
 
         item {
             PanelCard(
@@ -78,7 +78,7 @@ fun TempleScreen() {
             }
         }
 
-        item { DividerLabel("Booking clarity") }
+        SectionHeader("Booking clarity")
 
         item {
             PanelCard(

@@ -174,7 +174,7 @@ fun HomeScreen(onOpen: (String) -> Unit) {
             item { OfflineBanner(state = offlineBannerState) }
         }
 
-        item { DividerLabel("Today") }
+        SectionHeader("Today")
 
         if (currentStreakDays > 0 && !completedToday) {
             item {
@@ -207,6 +207,11 @@ fun HomeScreen(onOpen: (String) -> Unit) {
         item {
             DailyPrayerCard(
                 recommendation = recommendation,
+                supportingLine = joinUiSegments(
+                    recommendation.prayer.deity?.name?.en ?: "Universal prayer",
+                    localizedPanchang.tithi.name,
+                ),
+                pulsePrimaryAction = !hasContinuePrayer,
                 onBegin = {
                     DivyaRuntime.trackEvent(
                         "daily_recommendation_tapped",
@@ -219,7 +224,7 @@ fun HomeScreen(onOpen: (String) -> Unit) {
 
         item { PanchangCard(localizedPanchang, guidance = AppContent.panchangGuidance) }
 
-        item { DividerLabel("Temple and bookings") }
+        SectionHeader("Temple and bookings")
 
         if (bookingWithVideo != null) {
             item {
@@ -261,7 +266,7 @@ fun HomeScreen(onOpen: (String) -> Unit) {
             }
         }
 
-        item { DividerLabel("Your rhythm") }
+        SectionHeader("Your rhythm")
 
         item {
             PanelCard(

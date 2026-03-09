@@ -304,7 +304,7 @@ fun PrayerPlayerScreen(
             }
         },
     ) {
-        item { DividerLabel("Listen") }
+        SectionHeader("Listen")
 
         item {
             PanelCard(title = "Quick switch", subtitle = "Use these highlights now, or open the full library for the complete catalog.") {
@@ -373,7 +373,7 @@ fun PrayerPlayerScreen(
             }
         }
 
-        item { DividerLabel("Read along") }
+        SectionHeader("Read along")
 
         item {
             PanelCard(
@@ -403,7 +403,7 @@ fun PrayerPlayerScreen(
             }
         }
 
-        item { DividerLabel("Chant and count") }
+        SectionHeader("Chant and count")
 
         item {
             PanelCard(title = "Repetition guidance", subtitle = "Choose looped repetitions or manual mala counting.") {

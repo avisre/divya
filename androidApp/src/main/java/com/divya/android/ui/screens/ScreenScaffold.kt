@@ -1,9 +1,17 @@
 package com.divya.android.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,15 +44,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -52,6 +67,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.RowScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.divya.android.app.DivyaRuntime
 import com.divya.android.media.PrayerAudioPlayer
 import com.divya.android.ui.theme.AlertMarigold
@@ -99,6 +118,7 @@ fun ScreenScaffold(
     subtitle: String,
     eyebrow: String = "Divya",
     badge: String? = null,
+    titleAccessory: (@Composable (() -> Unit))? = null,
     heroVariant: HeroCardVariant = HeroCardVariant.DEFAULT,
     heroStats: List<HeroStat> = emptyList(),
     heroContent: @Composable ColumnScope.() -> Unit = {},
@@ -132,6 +152,7 @@ fun ScreenScaffold(
                     title = title,
                     subtitle = subtitle,
                     badge = badge,
+                    titleAccessory = titleAccessory,
                     variant = heroVariant,
                     heroStats = heroStats,
                     content = heroContent,
@@ -182,6 +203,7 @@ private fun HeroCard(
     title: String,
     subtitle: String,
     badge: String?,
+    titleAccessory: (@Composable (() -> Unit))?,
     variant: HeroCardVariant,
     heroStats: List<HeroStat>,
     content: @Composable ColumnScope.() -> Unit,
@@ -280,7 +302,7 @@ private fun HeroCard(
                         color = EyebrowColor,
                     )
                     if (badge != null) {
-                        StatusPill(label = badge)
+                        HeroBadge(label = badge)
                     }
                 }
                 if (variant == HeroCardVariant.PROFILE) {
@@ -296,15 +318,25 @@ private fun HeroCard(
                     )
                 }
             }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    lineHeight = MaterialTheme.typography.headlineLarge.fontSize * 1.15f,
-                ),
-                color = DeepBrown,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Text(
+                    text = title,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        lineHeight = MaterialTheme.typography.headlineLarge.fontSize * 1.15f,
+                    ),
+                    color = DeepBrown,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (titleAccessory != null) {
+                    titleAccessory()
+                }
+            }
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
@@ -322,12 +354,33 @@ private fun HeroCard(
 @Composable
 fun MetricsRow(stats: List<HeroStat>) {
     val statGap = if (LocalConfiguration.current.screenWidthDp < 380) 8.dp else 10.dp
+    var animateIn by remember(stats) { mutableStateOf(false) }
+    LaunchedEffect(stats) {
+        animateIn = true
+    }
     Column(verticalArrangement = Arrangement.spacedBy(statGap)) {
-        stats.chunked(2).forEach { row ->
+        stats.chunked(2).forEachIndexed { rowIndex, row ->
             Row(horizontalArrangement = Arrangement.spacedBy(statGap)) {
-                row.forEach { stat ->
+                row.forEachIndexed { columnIndex, stat ->
+                    val index = (rowIndex * 2) + columnIndex
+                    val alpha by animateFloatAsState(
+                        targetValue = if (animateIn) 1f else 0f,
+                        animationSpec = tween(durationMillis = 320, delayMillis = index * 50),
+                        label = "hero_stat_alpha_$index",
+                    )
+                    val density = LocalDensity.current
+                    val translationY by animateFloatAsState(
+                        targetValue = if (animateIn) 0f else with(density) { 8.dp.toPx() },
+                        animationSpec = tween(durationMillis = 320, delayMillis = index * 50),
+                        label = "hero_stat_translate_$index",
+                    )
                     Surface(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .graphicsLayer(
+                                alpha = alpha,
+                                translationY = translationY,
+                            ),
                         color = Ivory.copy(alpha = 0.82f),
                         shape = RoundedCornerShape(22.dp),
                         border = BorderStroke(1.dp, Clay.copy(alpha = 0.8f)),
@@ -493,6 +546,9 @@ fun SelectableTagRow(
     selected: String,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    selectedContainerColor: Color = Saffron.copy(alpha = 0.16f),
+    selectedLabelColor: Color = DeepBrown,
+    selectedBorderColor: Color = TempleGold.copy(alpha = 0.55f),
 ) {
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()),
@@ -504,8 +560,8 @@ fun SelectableTagRow(
                 onClick = { onSelect(option) },
                 label = { Text(option) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Saffron.copy(alpha = 0.16f),
-                    selectedLabelColor = DeepBrown,
+                    selectedContainerColor = selectedContainerColor,
+                    selectedLabelColor = selectedLabelColor,
                     containerColor = Ivory.copy(alpha = 0.92f),
                     labelColor = Dusk,
                 ),
@@ -513,7 +569,7 @@ fun SelectableTagRow(
                     enabled = true,
                     selected = selected == option,
                     borderColor = Clay.copy(alpha = 0.85f),
-                    selectedBorderColor = TempleGold.copy(alpha = 0.55f),
+                    selectedBorderColor = selectedBorderColor,
                     borderWidth = 1.dp,
                     selectedBorderWidth = 1.dp,
                 ),
@@ -551,6 +607,50 @@ fun StatusPill(label: String, color: Color = Saffron) {
             ),
             color = color,
         )
+    }
+}
+
+@Composable
+private fun HeroBadge(label: String) {
+    when {
+        label.startsWith("Account tier: Free", ignoreCase = true) || label.equals("Free", ignoreCase = true) -> {
+            StatusPill(label = "Account tier: Free", color = EyebrowColor)
+        }
+        label.contains("Bhakt", ignoreCase = true) -> {
+            Surface(
+                color = Color(0xFFC8860A),
+                shape = RoundedCornerShape(999.dp),
+            ) {
+                Text(
+                    text = "\uD83D\uDD25 $label",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp,
+                    ),
+                    color = Ivory,
+                )
+            }
+        }
+        label.contains("Seva", ignoreCase = true) -> {
+            Surface(
+                color = Color(0xFF8B2500),
+                shape = RoundedCornerShape(999.dp),
+            ) {
+                Text(
+                    text = "\u2726 $label",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp,
+                    ),
+                    color = Ivory,
+                )
+            }
+        }
+        else -> StatusPill(label = label)
     }
 }
 
@@ -594,6 +694,20 @@ fun DividerLabel(label: String) {
         HorizontalDivider(modifier = Modifier.weight(1f), color = DividerLineColor)
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = EyebrowColor)
         HorizontalDivider(modifier = Modifier.weight(1f), color = DividerLineColor)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+fun LazyListScope.SectionHeader(label: String) {
+    stickyHeader {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(WarmBackground.copy(alpha = 0.96f))
+                .padding(vertical = 4.dp),
+        ) {
+            DividerLabel(label)
+        }
     }
 }
 
@@ -644,19 +758,32 @@ fun PrimaryActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    content: (@Composable RowScope.() -> Unit)? = null,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val containerColor by animateColorAsState(
+        targetValue = if (isPressed) Color(0xFFD4600A) else PrimaryActionColor,
+        animationSpec = tween(durationMillis = 80),
+        label = "primary_button_press",
+    )
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier,
+        interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(
-            containerColor = PrimaryActionColor,
+            containerColor = containerColor,
             contentColor = Ivory,
             disabledContainerColor = PrimaryActionColor.copy(alpha = 0.4f),
             disabledContentColor = Ivory.copy(alpha = 0.92f),
         ),
     ) {
-        Text(text)
+        if (content != null) {
+            content()
+        } else {
+            Text(text)
+        }
     }
 }
 
@@ -745,6 +872,29 @@ private fun OmBadge(
     compact: Boolean,
     showListeningIndicator: Boolean,
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val rotation = remember { Animatable(0f) }
+    var isForeground by remember { mutableStateOf(true) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            isForeground = event == Lifecycle.Event.ON_RESUME || lifecycleOwner.lifecycle.currentState == Lifecycle.State.RESUMED
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(isForeground) {
+        if (!isForeground) return@LaunchedEffect
+        while (true) {
+            rotation.animateTo(
+                targetValue = rotation.value + 360f,
+                animationSpec = tween(durationMillis = 120_000, easing = LinearEasing),
+            )
+            rotation.snapTo(rotation.value % 360f)
+        }
+    }
+
     Box(
         modifier = Modifier
             .size(size)
@@ -765,7 +915,9 @@ private fun OmBadge(
             )
         }
         Box(
-            modifier = Modifier.size(if (compact) 36.dp else 42.dp),
+            modifier = Modifier
+                .size(if (compact) 36.dp else 42.dp)
+                .graphicsLayer { rotationZ = rotation.value },
             contentAlignment = Alignment.Center,
         ) {
             Text(

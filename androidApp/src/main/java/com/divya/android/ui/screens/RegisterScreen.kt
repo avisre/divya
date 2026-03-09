@@ -2,11 +2,7 @@ package com.divya.android.ui.screens
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,14 +10,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.divya.android.app.DivyaRuntime
 import com.divya.android.navigation.DivyaRoutes
-import com.divya.android.ui.screens.HeroTrustStrip
-import com.divya.android.ui.screens.TrustMarker
+import com.divya.android.ui.components.ProductionOutlinedTextField
 import com.divya.android.ui.theme.AlertMarigold
 import com.divya.android.ui.theme.SuccessLeaf
 import java.util.Locale
@@ -40,8 +36,7 @@ fun RegisterScreen(onOpen: (String) -> Unit) {
     var isSubmitting by rememberSaveable { mutableStateOf(false) }
     var statusMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var statusOk by rememberSaveable { mutableStateOf(true) }
-    val isBusy = isSubmitting
-    val canSubmit = name.isNotBlank() && email.isNotBlank() && password.isNotBlank() && !isBusy
+    val canSubmit = name.isNotBlank() && email.isNotBlank() && password.isNotBlank()
 
     ScreenScaffold(
         eyebrow = "Free account",
@@ -51,25 +46,32 @@ fun RegisterScreen(onOpen: (String) -> Unit) {
         heroContent = {
             HeroTrustStrip(
                 markers = listOf(
-                    TrustMarker("🔒", "Encrypted"),
-                    TrustMarker("🛕", "Temple-verified"),
-                    TrustMarker("🌏", "NRI-first"),
+                    TrustMarker("\uD83D\uDD12", "Encrypted"),
+                    TrustMarker("\uD83D\uDED5", "Temple-verified"),
+                    TrustMarker("\uD83C\uDF0F", "NRI-first"),
                 ),
             )
-            Button(
+            PrimaryActionButton(
+                text = "Create account",
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    if (name.isBlank() || email.isBlank() || password.isBlank()) {
+                    if (!canSubmit) {
                         statusOk = false
                         statusMessage = "Name, email, and password are required."
-                        return@Button
+                        return@PrimaryActionButton
                     }
                     isSubmitting = true
                     statusMessage = null
                     DivyaRuntime.trackEvent("register_started", mapOf("country" to country))
                     scope.launch {
                         runCatching {
-                            DivyaRuntime.register(name.trim(), email.trim(), password, country.trim(), timezone.trim())
+                            DivyaRuntime.register(
+                                name.trim(),
+                                email.trim(),
+                                password,
+                                country.trim(),
+                                timezone.trim(),
+                            )
                         }.onSuccess {
                             statusOk = true
                             statusMessage = "Account created. Personalize your home screen next."
@@ -82,39 +84,55 @@ fun RegisterScreen(onOpen: (String) -> Unit) {
                         isSubmitting = false
                     }
                 },
-                enabled = canSubmit,
-                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSubmitting,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(if (canSubmit || isSubmitting) 1f else 0.4f),
             ) {
                 if (isSubmitting) {
                     CircularProgressIndicator()
-                } else {
-                    Text("Create account")
                 }
             }
         },
     ) {
         item {
             PanelCard(title = "Your details") {
-                OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Name") }, singleLine = true)
-                OutlinedTextField(
+                ProductionOutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "Name",
+                    singleLine = true,
+                )
+                ProductionOutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Email") },
+                    label = "Email",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true,
                 )
-                OutlinedTextField(
+                ProductionOutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Password") },
+                    label = "Password",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
                 )
-                OutlinedTextField(value = country, onValueChange = { country = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Country code") })
-                OutlinedTextField(value = timezone, onValueChange = { timezone = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Timezone") })
+                ProductionOutlinedTextField(
+                    value = country,
+                    onValueChange = { country = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "Country code",
+                )
+                ProductionOutlinedTextField(
+                    value = timezone,
+                    onValueChange = { timezone = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "Timezone",
+                )
             }
         }
         statusMessage?.let { message ->
@@ -134,12 +152,11 @@ fun RegisterScreen(onOpen: (String) -> Unit) {
         }
         item {
             PanelCard(title = "Already have an account?") {
-                OutlinedButton(
+                SecondaryActionButton(
+                    text = "Back to sign in",
                     onClick = { onOpen(DivyaRoutes.login.route) },
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Back to sign in")
-                }
+                )
             }
         }
     }

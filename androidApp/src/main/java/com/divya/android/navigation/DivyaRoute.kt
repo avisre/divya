@@ -16,14 +16,14 @@ object DivyaRoutes {
     val onboarding = DivyaRoute("onboarding", "Onboarding", "Onboard", "Q")
     val login = DivyaRoute("login", "Login", "Login", "In")
     val register = DivyaRoute("register", "Register", "Register", "Up")
-    val home = DivyaRoute("home", "Home", "Home", "\uD83C\uDFE0")
-    val library = DivyaRoute("library", "Prayer Library", "Prayers", "\uD83D\uDCFF")
+    val home = DivyaRoute("home", "Home", "Home", "\u2302")
+    val library = DivyaRoute("library", "Prayer Library", "Prayers", "\uD83D\uDCD6")
     val prayer = DivyaRoute("prayer", "Prayer Player", "Player", "Play")
     val nowPlaying = DivyaRoute("now-playing", "Now Playing", "Now Playing", "Now")
     val deity = DivyaRoute("deity", "Deity Detail", "Deity", "D")
     val deityLearn = DivyaRoute("deity-learn", "Deity Learn", "Learn", "L")
     val deityModule = DivyaRoute("deity-module", "Learning Module", "Module", "M")
-    val temple = DivyaRoute("temple", "Temple", "Temple", "\uD83C\uDFDB\uFE0F")
+    val temple = DivyaRoute("temple", "Temple", "Temple", "\uD83D\uDED5")
     val puja = DivyaRoute("puja", "Puja Detail", "Puja", "S")
     val waitlist = DivyaRoute("waitlist", "Waitlist Join", "Waitlist", "W")
     val myPujas = DivyaRoute("my-pujas", "My Pujas", "My Pujas", "\uD83E\uDE94")
@@ -40,7 +40,6 @@ object DivyaRoutes {
     val all = listOf(
         gallery,
         splash,
-        guest,
         onboarding,
         login,
         register,

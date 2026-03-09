@@ -116,7 +116,7 @@ fun MyPujasScreen(onOpen: (String) -> Unit) {
             }
         },
     ) {
-        item { DividerLabel("View") }
+        SectionHeader("View")
 
         item {
             PanelCard(
@@ -159,7 +159,7 @@ fun MyPujasScreen(onOpen: (String) -> Unit) {
             return@ScreenScaffold
         }
 
-        item { DividerLabel("Bookings") }
+        SectionHeader("Bookings")
 
         if (liveBookings.isNotEmpty()) {
             item {
@@ -179,7 +179,8 @@ fun MyPujasScreen(onOpen: (String) -> Unit) {
         if (liveBookings.isEmpty()) {
             item {
                 PanelCard(
-                    title = "No active bookings",
+                    title = "Your sacred record begins with your first puja",
+                    subtitle = "Every confirmed ritual and video will appear here.",
                 ) {
                     EmptyPujaStateArtwork()
                 }
@@ -268,27 +269,19 @@ private fun EmptyPujaStateArtwork() {
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .border(1.dp, Clay.copy(alpha = 0.72f), CircleShape)
-                    .background(Ivory.copy(alpha = 0.65f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "\u0950",
-                    color = DeepBrown,
-                    modifier = Modifier.alpha(0.3f),
-                )
-            }
+            Text(
+                text = "\uD83E\uDE94",
+                color = DeepBrown.copy(alpha = 0.86f),
+                modifier = Modifier.alpha(0.92f),
+            )
         }
         Text(
-            text = "Your puja journey starts here",
+            text = "Your sacred record begins with your first puja",
             color = DeepBrown,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = "Browse pujas, save your devotee details, and join a waitlist - your bookings and sacred videos will appear here.",
+            text = "Every confirmed ritual and video will appear here.",
             color = DeepBrown.copy(alpha = 0.7f),
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 12.dp),

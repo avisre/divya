@@ -20,6 +20,8 @@ import com.divya.android.ui.formatPrice
 import com.divya.android.ui.components.GiftConfirmationCard
 import com.divya.android.ui.components.GiftPujaSheet
 import com.divya.android.ui.components.PujaCard
+import com.divya.android.ui.theme.Ivory
+import com.divya.android.ui.theme.Saffron
 import com.divya.android.ui.theme.TempleGold
 
 @Composable
@@ -34,7 +36,12 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
         eyebrow = "Sacred offering",
         title = selectedPuja.name.en,
         subtitle = "See what this ritual includes, why families choose it, and how the temple will carry it in your name.",
-        badge = "Waitlist only",
+        titleAccessory = {
+            StatusPill(
+                label = "Waitlist only",
+                color = TempleGold,
+            )
+        },
         heroVariant = HeroCardVariant.PUJA,
         heroStats = listOf(
             HeroStat(
@@ -84,7 +91,7 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
             }
         },
     ) {
-        item { DividerLabel("Choose offering") }
+        SectionHeader("Choose offering")
 
         item {
             PanelCard(title = "Choose a puja", subtitle = "Select one offering and the ritual guidance below updates immediately.") {
@@ -96,13 +103,16 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
                         showGiftFlow = false
                         giftConfirmed = false
                     },
+                    selectedContainerColor = Saffron,
+                    selectedLabelColor = Ivory,
+                    selectedBorderColor = Saffron,
                 )
             }
         }
 
         item { PujaCard(selectedPuja) }
 
-        item { DividerLabel("Why families book it") }
+        SectionHeader("Why families book it")
 
         item {
             PanelCard(
@@ -141,7 +151,7 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
             )
         }
 
-        item { DividerLabel("Gift for family") }
+        SectionHeader("Gift for family")
 
         if (!showGiftFlow) {
             item {

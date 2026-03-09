@@ -23,8 +23,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.divya.android.ui.screens.StatusPill
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -36,13 +38,17 @@ import com.divya.android.ui.theme.Ivory
 import com.divya.android.ui.theme.Saffron
 import com.divya.android.ui.theme.TempleGold
 
+private val PendingVideoColor = androidx.compose.ui.graphics.Color(0xFF7B8FA1)
+
 @Composable
 fun PujaVideoCard(
     streamUrl: String?,
     shareUrl: String?,
+    videoStatus: String,
     onVideoStarted: () -> Unit,
 ) {
     val context = LocalContext.current
+    val isCompactPhone = LocalConfiguration.current.screenWidthDp < 380
     var playerReady by remember { mutableStateOf(false) }
     var playbackStarted by remember { mutableStateOf(false) }
     val player = remember(streamUrl) {
@@ -91,16 +97,16 @@ fun PujaVideoCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = "Sacred video archive",
                     style = MaterialTheme.typography.titleLarge,
                     color = Saffron,
                 )
-                Text(
-                    text = if (streamUrl != null) "Mongo video ready" else "Awaiting upload",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = TempleGold,
+                StatusPill(
+                    label = if (streamUrl != null) "Video ready" else "Awaiting upload",
+                    color = if (streamUrl != null) Saffron else PendingVideoColor,
                 )
             }
             if (player != null) {
@@ -115,46 +121,70 @@ fun PujaVideoCard(
                         .fillMaxWidth()
                         .height(220.dp),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = {
-                            if (player.isPlaying) player.pause() else player.play()
-                        },
-                        enabled = playerReady,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(if (player.isPlaying) "Pause" else "Play")
+                if (isCompactPhone) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = {
+                                if (player.isPlaying) player.pause() else player.play()
+                            },
+                            enabled = playerReady,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (player.isPlaying) "Pause video" else "Play video")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                if (!shareUrl.isNullOrBlank()) {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, shareUrl)
+                                        },
+                                    )
+                                }
+                            },
+                            enabled = !shareUrl.isNullOrBlank(),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Share private link")
+                        }
                     }
-                    OutlinedButton(
-                        onClick = {
-                            if (!shareUrl.isNullOrBlank()) {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, shareUrl)
-                                    },
-                                )
-                            }
-                        },
-                        enabled = !shareUrl.isNullOrBlank(),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Share link")
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = {
+                                if (player.isPlaying) player.pause() else player.play()
+                            },
+                            enabled = playerReady,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(if (player.isPlaying) "Pause video" else "Play video")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                if (!shareUrl.isNullOrBlank()) {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, shareUrl)
+                                        },
+                                    )
+                                }
+                            },
+                            enabled = !shareUrl.isNullOrBlank(),
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Share private link")
+                        }
                     }
                 }
             } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "Private puja recording will appear here when the temple uploads it.",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = DeepBrown,
-                    )
-                }
+                VideoStatusStepper(videoStatus = videoStatus)
+                Text(
+                    text = "Private puja recording will appear here when the temple uploads it.",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = DeepBrown,
+                )
             }
             if (!shareUrl.isNullOrBlank()) {
                 OutlinedButton(
@@ -163,7 +193,7 @@ fun PujaVideoCard(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Open browser share page")
+                    Text("Open secure link")
                 }
             }
         }

@@ -4,7 +4,6 @@ import android.animation.ValueAnimator
 import android.net.Uri
 import android.util.Patterns
 import android.view.Choreographer
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,6 +30,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.divya.android.BuildConfig
@@ -52,6 +52,7 @@ fun PrayerPlayerScreen(
     onOpen: (String) -> Unit,
 ) {
     val context = LocalContext.current
+    val isCompactPhone = LocalConfiguration.current.screenWidthDp < 380
     val scope = rememberCoroutineScope()
     val scriptPrefs = remember(context) {
         context.getSharedPreferences(SCRIPT_PREFS_NAME, android.content.Context.MODE_PRIVATE)
@@ -73,7 +74,9 @@ fun PrayerPlayerScreen(
     var audioMetadata by remember(selectedPrayerId) { mutableStateOf<PrayerAudioMetadata?>(null) }
     var metadataError by remember(selectedPrayerId) { mutableStateOf<String?>(null) }
     var showFavoriteNudge by rememberSaveable { mutableStateOf(false) }
+    var pendingAutoPlayPrayerId by rememberSaveable { mutableStateOf(initialPrayerId?.takeIf { it.isNotBlank() }) }
     var previousPlayingPrayerId by rememberSaveable { mutableStateOf<String?>(null) }
+    val session by DivyaRuntime.sessionState.collectAsState()
     val playerState by PrayerAudioPlayer.state.collectAsState()
     val remoteCatalog by DivyaRuntime.prayerCatalog.collectAsState()
     val entitlementsSnapshot by DivyaRuntime.prayerEntitlements.collectAsState()
@@ -85,26 +88,29 @@ fun PrayerPlayerScreen(
         if (!initialPrayerId.isNullOrBlank()) {
             selectedPrayerId = initialPrayerId
             progress = 0f
+            audioProgress = 0f
             malaCount = 0
+            pendingAutoPlayPrayerId = initialPrayerId
         }
     }
 
-    val selectedPrayer = catalog.firstOrNull { it.id == selectedPrayerId } ?: AppContent.gayatri
-    val isEntitled = entitlements[selectedPrayer.id]?.entitled ?: true
+    val selectedPrayer = remember(catalog, selectedPrayerId) {
+        resolvePrayerSelection(catalog, selectedPrayerId)
+    }
+    val isAuthenticated = !session.token.isNullOrBlank() && session.user?.isGuest == false
+    val isEntitled = isAuthenticated && (entitlements[selectedPrayer.id]?.entitled ?: true)
     val bundledAudioUrl = remember(selectedPrayer.id, selectedPrayer.slug, selectedPrayer.title.en) {
         resolveBundledAudioUrl(selectedPrayer)
     }
     val resolvedAudioUrl =
-        bundledAudioUrl
-            ?: audioMetadata?.streamUrl
-            ?: audioMetadata?.url
-            ?: selectedPrayer.audioUrl
-    val sourceUri = remember(resolvedAudioUrl) {
-        resolvePrayerAudioUri(context, resolvedAudioUrl)
-    }
-    val sourceToken = remember(selectedPrayer.id, resolvedAudioUrl, audioMetadata?.checksumSha256, audioMetadata?.version) {
-        "${selectedPrayer.id}|${resolvedAudioUrl.orEmpty()}|${audioMetadata?.checksumSha256.orEmpty()}|${audioMetadata?.version ?: 1}"
-    }
+        if (isAuthenticated) {
+            bundledAudioUrl
+                ?: audioMetadata?.streamUrl
+                ?: audioMetadata?.url
+                ?: selectedPrayer.audioUrl
+        } else {
+            null
+        }
     val scriptText = prayerScript(selectedPrayer, selectedScript)
     val verses = remember(scriptText) { splitPrayerIntoVerses(scriptText) }
     val highlightedVerse = if (verses.isEmpty()) 0 else ((verses.lastIndex) * audioProgress).toInt().coerceIn(0, verses.lastIndex)
@@ -134,9 +140,13 @@ fun PrayerPlayerScreen(
         }
     }
 
-    LaunchedEffect(selectedPrayer.id) {
+    LaunchedEffect(selectedPrayer.id, isAuthenticated) {
         metadataError = null
         audioMetadata = null
+        if (!isAuthenticated) {
+            metadataError = "Sign in is required to listen to prayer audio."
+            return@LaunchedEffect
+        }
         runCatching {
             DivyaRuntime.fetchPrayerAudioMetadata(selectedPrayer.id)
         }.onSuccess {
@@ -153,20 +163,6 @@ fun PrayerPlayerScreen(
         DivyaRuntime.trackEvent(
             "funnel_stage",
             mapOf("stage" to "player_open", "prayer_id" to selectedPrayer.id),
-        )
-    }
-
-    LaunchedEffect(selectedPrayer.id, sourceToken, sourceUri, isEntitled) {
-        if (!isEntitled) {
-            PrayerAudioPlayer.stop()
-            return@LaunchedEffect
-        }
-        PrayerAudioPlayer.initialize(context)
-        PrayerAudioPlayer.setSource(
-            prayerId = selectedPrayer.id,
-            title = selectedPrayer.title.en,
-            sourceToken = sourceToken,
-            sourceUri = sourceUri,
         )
     }
 
@@ -256,20 +252,35 @@ fun PrayerPlayerScreen(
             playerState.isReady -> "Ready to play"
             else -> "Loading audio"
         },
+        heroVariant = HeroCardVariant.PRAYER,
         heroStats = listOf(
             HeroStat("${(progress * selectedRep.toInt()).toInt().coerceAtLeast(1)} / $selectedRep", "Current repetitions"),
             HeroStat("${selectedPrayer.durationMinutes} min", "Session length"),
             HeroStat(selectedScript, "Reading mode"),
             HeroStat("${playerState.playbackSpeed}x", "Playback speed"),
-            HeroStat("108 beads", "Digital mala counter"),
+            HeroStat("108 beads", "Mala counter"),
         ),
         heroContent = {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(onClick = { onOpen(DivyaRoutes.nowPlaying.route) }, modifier = Modifier.weight(1f)) {
-                    Text("Audio controls")
+            if (isCompactPhone) {
+                androidx.compose.foundation.layout.Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Button(onClick = { onOpen(DivyaRoutes.nowPlaying.route) }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Audio controls")
+                    }
+                    OutlinedButton(onClick = { onOpen(DivyaRoutes.library.route) }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Browse prayers")
+                    }
                 }
-                OutlinedButton(onClick = { onOpen(DivyaRoutes.library.route) }, modifier = Modifier.weight(1f)) {
-                    Text("Browse prayers")
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { onOpen(DivyaRoutes.nowPlaying.route) }, modifier = Modifier.weight(1f)) {
+                        Text("Audio controls")
+                    }
+                    OutlinedButton(onClick = { onOpen(DivyaRoutes.library.route) }, modifier = Modifier.weight(1f)) {
+                        Text("Browse prayers")
+                    }
                 }
             }
             if (BuildConfig.ENABLE_SHARED_PRAYER_PREVIEW) {
@@ -289,7 +300,7 @@ fun PrayerPlayerScreen(
         item { DividerLabel("Listen") }
 
         item {
-            PanelCard(title = "Quick switch", subtitle = "Use highlights here. Open the library for the full catalog.") {
+            PanelCard(title = "Quick switch", subtitle = "Use these highlights now, or open the full library for the complete catalog.") {
                 SelectableTagRow(
                     options = pickerPrayers.map { it.title.en },
                     selected = selectedPrayer.title.en,
@@ -300,6 +311,7 @@ fun PrayerPlayerScreen(
                             progress = 0f
                             audioProgress = 0f
                             malaCount = 0
+                            pendingAutoPlayPrayerId = picked.id
                             selectedRep = picked.recommendedRepetitions.firstOrNull()?.toString() ?: selectedRep
                         }
                     },
@@ -308,14 +320,22 @@ fun PrayerPlayerScreen(
         }
 
         item {
-            if (!isEntitled) {
+            if (!isAuthenticated || !isEntitled) {
                 PanelCard(
                     title = "Tier unlock required",
-                    subtitle = metadataError ?: "This prayer is currently locked for your account tier.",
+                    subtitle = metadataError ?: if (!isAuthenticated) {
+                        "Please sign in to listen to prayer audio."
+                    } else {
+                        "This prayer is currently locked for your account tier."
+                    },
                 ) {
-                    TextBlock("Unlock this prayer in ${audioMetadata?.requiredTier?.replaceFirstChar { it.uppercase() } ?: "Bhakt"} and continue your chanting session.")
-                    Button(onClick = { onOpen(DivyaRoutes.profile.route) }, modifier = Modifier.fillMaxWidth()) {
-                        Text("View tier plans")
+                    if (!isAuthenticated) {
+                        TextBlock("Audio playback is available for signed-in devotees only.")
+                    } else {
+                        TextBlock("Unlock this prayer in ${audioMetadata?.requiredTier?.replaceFirstChar { it.uppercase() } ?: "Bhakt"} and continue your chanting session.")
+                        Button(onClick = { onOpen(DivyaRoutes.profile.route) }, modifier = Modifier.fillMaxWidth()) {
+                            Text("View tier plans")
+                        }
                     }
                 }
             }
@@ -327,8 +347,6 @@ fun PrayerPlayerScreen(
                     prayerId = selectedPrayer.id,
                     title = selectedPrayer.title.en,
                     audioUrl = resolvedAudioUrl,
-                    audioSource = audioMetadata?.sourceLabel ?: AppContent.audioSourceLabel(selectedPrayer.id),
-                    audioQualityLabel = audioMetadata?.qualityLabel ?: AppContent.audioQualityLabel(selectedPrayer.id),
                     pronunciationTip = AppContent.pronunciationTip(selectedPrayer.id),
                     transliteration = selectedPrayer.transliteration ?: selectedPrayer.iast.orEmpty(),
                     englishMeaning = selectedPrayer.content.english ?: selectedPrayer.meaning.orEmpty(),
@@ -336,6 +354,8 @@ fun PrayerPlayerScreen(
                     audioVersion = audioMetadata?.version,
                     requiredTierLabel = audioMetadata?.requiredTier?.replaceFirstChar { it.uppercase() },
                     entitled = isEntitled,
+                    autoPlayRequested = shouldRequestAutoPlay(pendingAutoPlayPrayerId, selectedPrayer.id),
+                    onAutoPlayConsumed = { pendingAutoPlayPrayerId = null },
                     onSubscribeAudioComingSoon = {
                         scope.launch {
                             runCatching { DivyaRuntime.subscribeAudioComingSoon(selectedPrayer.id, true) }
@@ -372,37 +392,6 @@ fun PrayerPlayerScreen(
                             color = if (index == highlightedVerse) TempleGold else DeepBrown,
                         )
                     }
-                }
-                OutlinedButton(
-                    onClick = {
-                        DivyaRuntime.trackEvent(
-                            "prayer_text_issue_reported",
-                            mapOf(
-                                "prayer_id" to selectedPrayer.id,
-                                "script_tab" to selectedScript,
-                                "highlighted_verse_index" to highlightedVerse,
-                            ),
-                        )
-                        scope.launch {
-                            runCatching {
-                                DivyaRuntime.reportPrayerTextIssue(
-                                    prayerId = selectedPrayer.id,
-                                    suggestedText = verses.getOrNull(highlightedVerse) ?: scriptText,
-                                    currentText = scriptText,
-                                    category = when (selectedScript) {
-                                        "IAST" -> "transliteration"
-                                        "English + meaning" -> "meaning"
-                                        else -> "text"
-                                    },
-                                    note = "Auto-captured from prayer player verse $highlightedVerse",
-                                )
-                            }
-                        }
-                        Toast.makeText(context, "Text issue captured for review", Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Report text issue")
                 }
             }
         }
@@ -452,48 +441,98 @@ fun PrayerPlayerScreen(
                     color = TempleGold,
                     trackColor = TempleGold.copy(alpha = 0.2f),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = {
-                            progress = (progress + 0.12f).coerceAtMost(1f)
-                            malaCount = (malaCount + 1).coerceAtMost(108)
-                            if (progress >= 1f) {
-                                showFavoriteNudge = true
+                if (isCompactPhone) {
+                    androidx.compose.foundation.layout.Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Button(
+                            onClick = {
+                                progress = (progress + 0.12f).coerceAtMost(1f)
+                                malaCount = (malaCount + 1).coerceAtMost(108)
+                                if (progress >= 1f) {
+                                    showFavoriteNudge = true
+                                    DivyaRuntime.trackEvent(
+                                        "prayer_completed",
+                                        mapOf(
+                                            "prayer_id" to selectedPrayer.id,
+                                            "duration_seconds" to (selectedPrayer.durationMinutes * 60),
+                                            "repetitions_completed" to selectedRep.toInt(),
+                                            "completion_rate" to 1.0,
+                                        ),
+                                    )
+                                    DivyaRuntime.trackEvent(
+                                        "funnel_stage",
+                                        mapOf("stage" to "completion", "prayer_id" to selectedPrayer.id),
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Complete bead")
+                        }
+                        OutlinedButton(
+                            onClick = {
                                 DivyaRuntime.trackEvent(
-                                    "prayer_completed",
+                                    "prayer_abandoned",
                                     mapOf(
                                         "prayer_id" to selectedPrayer.id,
-                                        "duration_seconds" to (selectedPrayer.durationMinutes * 60),
-                                        "repetitions_completed" to selectedRep.toInt(),
-                                        "completion_rate" to 1.0,
+                                        "abandoned_at_seconds" to ((selectedPrayer.durationMinutes * 60) * progress).toInt(),
+                                        "completion_rate" to progress,
                                     ),
                                 )
-                                DivyaRuntime.trackEvent(
-                                    "funnel_stage",
-                                    mapOf("stage" to "completion", "prayer_id" to selectedPrayer.id),
-                                )
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Complete bead")
+                                progress = 0f
+                                malaCount = 0
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Reset")
+                        }
                     }
-                    OutlinedButton(
-                        onClick = {
-                            DivyaRuntime.trackEvent(
-                                "prayer_abandoned",
-                                mapOf(
-                                    "prayer_id" to selectedPrayer.id,
-                                    "abandoned_at_seconds" to ((selectedPrayer.durationMinutes * 60) * progress).toInt(),
-                                    "completion_rate" to progress,
-                                ),
-                            )
-                            progress = 0f
-                            malaCount = 0
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Reset")
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = {
+                                progress = (progress + 0.12f).coerceAtMost(1f)
+                                malaCount = (malaCount + 1).coerceAtMost(108)
+                                if (progress >= 1f) {
+                                    showFavoriteNudge = true
+                                    DivyaRuntime.trackEvent(
+                                        "prayer_completed",
+                                        mapOf(
+                                            "prayer_id" to selectedPrayer.id,
+                                            "duration_seconds" to (selectedPrayer.durationMinutes * 60),
+                                            "repetitions_completed" to selectedRep.toInt(),
+                                            "completion_rate" to 1.0,
+                                        ),
+                                    )
+                                    DivyaRuntime.trackEvent(
+                                        "funnel_stage",
+                                        mapOf("stage" to "completion", "prayer_id" to selectedPrayer.id),
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Complete bead")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                DivyaRuntime.trackEvent(
+                                    "prayer_abandoned",
+                                    mapOf(
+                                        "prayer_id" to selectedPrayer.id,
+                                        "abandoned_at_seconds" to ((selectedPrayer.durationMinutes * 60) * progress).toInt(),
+                                        "completion_rate" to progress,
+                                    ),
+                                )
+                                progress = 0f
+                                malaCount = 0
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Reset")
+                        }
                     }
                 }
             }
@@ -601,6 +640,23 @@ private fun resolveBundledAudioUrl(prayer: Prayer): String? {
     ).firstOrNull { !it.isNullOrBlank() }
 }
 
+private fun resolvePrayerSelection(
+    catalog: List<Prayer>,
+    prayerRef: String,
+): Prayer {
+    val fromCatalog = catalog.firstOrNull { prayer ->
+        prayer.id.equals(prayerRef, ignoreCase = true) || prayer.slug.equals(prayerRef, ignoreCase = true)
+    }
+    if (fromCatalog != null) return fromCatalog
+
+    val fromLocal = AppContent.prayerLibrary108.firstOrNull { prayer ->
+        prayer.id.equals(prayerRef, ignoreCase = true) || prayer.slug.equals(prayerRef, ignoreCase = true)
+    }
+    if (fromLocal != null) return fromLocal
+
+    return AppContent.gayatri
+}
+
 private fun previewLine(text: String?): String? {
     return text
         ?.lineSequence()
@@ -614,6 +670,13 @@ private fun normalizePrayerKey(value: String?): String {
         .trim()
         .lowercase()
         .replace("[^a-z0-9]+".toRegex(), "")
+}
+
+internal fun shouldRequestAutoPlay(
+    pendingPrayerId: String?,
+    selectedPrayerId: String,
+): Boolean {
+    return !pendingPrayerId.isNullOrBlank() && pendingPrayerId.equals(selectedPrayerId, ignoreCase = true)
 }
 
 private fun prayerScript(prayer: Prayer, selectedScript: String): String {
@@ -640,7 +703,7 @@ private fun splitPrayerIntoVerses(text: String): List<String> {
     if (byLines.size > 1) return byLines
 
     val byMarkers = text
-        .split("à¥¥", "|", ".", ";")
+        .split("\u0965", "\u0964", "|", ".", ";")
         .map { it.trim() }
         .filter { it.isNotBlank() }
     return if (byMarkers.isNotEmpty()) byMarkers else listOf(text)

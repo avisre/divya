@@ -35,6 +35,7 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
         title = selectedPuja.name.en,
         subtitle = "See what this ritual includes, why families choose it, and how the temple will carry it in your name.",
         badge = "Waitlist only",
+        heroVariant = HeroCardVariant.PUJA,
         heroStats = listOf(
             HeroStat(
                 formatPrice(

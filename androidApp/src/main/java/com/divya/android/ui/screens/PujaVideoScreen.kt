@@ -30,6 +30,7 @@ fun PujaVideoScreen(onOpen: (String) -> Unit) {
     var liveBookingId by rememberSaveable { mutableStateOf<String?>(null) }
     var liveIntention by rememberSaveable { mutableStateOf<String?>(null) }
     var livePujaName by rememberSaveable { mutableStateOf<String?>(null) }
+    var liveVideoStatus by rememberSaveable { mutableStateOf("booked") }
     var statusMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -39,6 +40,7 @@ fun PujaVideoScreen(onOpen: (String) -> Unit) {
             liveBookingId = bookingWithVideo?.id
             liveIntention = bookingWithVideo?.prayerIntention
             livePujaName = bookingWithVideo?.pujaName
+            liveVideoStatus = bookingWithVideo?.videoStatus ?: "booked"
             if (bookingWithVideo != null) {
                 DivyaRuntime.fetchVideoAccess(bookingWithVideo.id)
             } else {
@@ -56,13 +58,14 @@ fun PujaVideoScreen(onOpen: (String) -> Unit) {
 
     ScreenScaffold(
         eyebrow = "Private delivery",
-        title = "Sacred video",
-        subtitle = "Watch completed puja recordings once a temple booking reaches video ready status.",
-        badge = "Deep link target",
+        title = "Sacred video archive",
+        subtitle = "Watch completed puja recordings once the temple has finished and uploaded your private video.",
+        badge = "Private access",
+        heroVariant = HeroCardVariant.PUJA,
         heroStats = listOf(
-            HeroStat("48 hrs", "Delivery expectation"),
-            HeroStat(if (videoAccess != null) "Signed stream" else "Pending", "Video access"),
-            HeroStat("Mongo GridFS", "Private storage"),
+            HeroStat("48 hrs", "Typical delivery"),
+            HeroStat("Private", "Only visible to you"),
+            HeroStat(liveVideoStatus.replace('_', ' ').replaceFirstChar { it.uppercase() }, "Current status"),
         ),
         heroContent = {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -86,10 +89,11 @@ fun PujaVideoScreen(onOpen: (String) -> Unit) {
                 "Intention" -> PanelCard(title = "Prayer intention shared with the temple") {
                     TextBlock(liveIntention ?: "When a live puja booking is available, the submitted intention appears here.")
                 }
-                "Notes" -> VideoProcessingCard()
+                "Notes" -> VideoProcessingCard(videoStatus = liveVideoStatus)
                 else -> PujaVideoCard(
                     streamUrl = videoAccess?.streamUrl,
                     shareUrl = videoAccess?.shareUrl,
+                    videoStatus = liveVideoStatus,
                     onVideoStarted = {
                         val bookingId = liveBookingId
                         if (bookingId != null) {

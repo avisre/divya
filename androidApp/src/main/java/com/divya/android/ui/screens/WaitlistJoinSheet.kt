@@ -172,6 +172,7 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
             title = "Prepare your puja request",
             subtitle = "Share the devotee details the temple needs, review them once, and submit your request with confidence.",
             badge = "Temple request",
+            heroVariant = HeroCardVariant.PUJA,
             heroStats = listOf(
                 HeroStat(formatPrice(51.0, "USD"), "Presented price"),
                 HeroStat("Temple service", "Performed in your name"),

@@ -24,6 +24,7 @@ fun TempleScreen() {
         title = AppContent.temple.name.en,
         subtitle = "Temple timings, ritual windows, and travel-friendly guidance are gathered here in one clear overview.",
         badge = "Kerala Tantric Agama",
+        heroVariant = HeroCardVariant.TEMPLE,
         heroStats = listOf(
             HeroStat("IST", "Temple timezone"),
             HeroStat("5 pujas", "Daily ritual windows"),

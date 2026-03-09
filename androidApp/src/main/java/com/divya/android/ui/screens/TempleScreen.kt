@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.divya.android.ui.formatPrice
 import com.divya.android.ui.components.TempleHeroVisualCard
 import com.divya.android.ui.theme.Clay
 import com.divya.android.ui.theme.DeepBrown
@@ -21,13 +22,13 @@ fun TempleScreen() {
     ScreenScaffold(
         eyebrow = "Karunagapally | Kerala",
         title = AppContent.temple.name.en,
-        subtitle = "Temple timings, ritual windows, and diaspora guidance are gathered here in one calmer overview for families abroad.",
+        subtitle = "Temple timings, ritual windows, and travel-friendly guidance are gathered here in one clear overview.",
         badge = "Kerala Tantric Agama",
         heroStats = listOf(
             HeroStat("IST", "Temple timezone"),
             HeroStat("5 pujas", "Daily ritual windows"),
-            HeroStat("NRI-first", "Timezone clarity"),
-            HeroStat("Launch temple", "Pan-India roadmap"),
+            HeroStat("Families abroad", "Useful guidance"),
+            HeroStat("Temple updates", "Current focus"),
         ),
     ) {
         item { TempleHeroVisualCard() }
@@ -50,7 +51,7 @@ fun TempleScreen() {
         item {
             PanelCard(
                 title = "Daily puja timings",
-                subtitle = "Timings stay anchored to IST so the temple remains the sacred reference point.",
+                subtitle = "Timings are shown in IST so the temple schedule stays clear and consistent.",
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     AppContent.temple.timings.pujas.forEach { timing ->
@@ -68,7 +69,7 @@ fun TempleScreen() {
         item {
             PanelCard(
                 title = "Timezone clarity",
-                subtitle = "A devotee abroad should understand the Kerala-to-local offset instantly.",
+                subtitle = "See how temple timings relate to your local day before you plan a booking or livestream.",
             ) {
                 InfoRow(label = "Temple timezone", value = "Asia/Kolkata")
                 InfoRow(label = "User timezone", value = AppContent.panchang.timezone)
@@ -81,11 +82,16 @@ fun TempleScreen() {
         item {
             PanelCard(
                 title = "Most requested pujas",
-                subtitle = "This should help a first-time devotee understand what can actually be booked from abroad.",
+                subtitle = "A quick overview of the pujas families most often book from abroad.",
             ) {
                 BulletList(
                     AppContent.pujaHighlights.take(4).map { puja ->
-                        "${puja.name.en} | ${puja.displayPrice?.currency ?: "USD"} ${puja.displayPrice?.amount ?: puja.pricing.usd} | ${puja.description.short.orEmpty()}"
+                        "${puja.name.en} • ${
+                            formatPrice(
+                                amount = puja.displayPrice?.amount ?: puja.pricing.usd,
+                                currencyCode = puja.displayPrice?.currency ?: "USD",
+                            )
+                        } • ${puja.description.short.orEmpty()}"
                     },
                 )
             }

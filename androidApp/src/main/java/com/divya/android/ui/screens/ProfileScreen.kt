@@ -2,10 +2,18 @@ package com.divya.android.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -23,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -31,12 +40,15 @@ import androidx.compose.ui.unit.dp
 import com.divya.android.app.DivyaRuntime
 import com.divya.android.app.UserStreakSummary
 import com.divya.android.navigation.DivyaRoutes
+import com.divya.android.ui.productionDisplayName
 import com.divya.android.ui.components.UpgradePromptSheet
 import com.divya.android.ui.theme.AlertMarigold
 import com.divya.android.ui.theme.DeepBrown
 import com.divya.android.ui.theme.SuccessLeaf
+import java.util.TimeZone
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(onOpen: (String) -> Unit) {
     val scope = rememberCoroutineScope()
@@ -50,6 +62,20 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
     var weekendWindow by rememberSaveable { mutableStateOf("7:00 AM - 9:00 AM") }
     var statusMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var liveStreak by remember { mutableStateOf<UserStreakSummary?>(null) }
+    var showTimezonePicker by rememberSaveable { mutableStateOf(false) }
+    var timezoneQuery by rememberSaveable { mutableStateOf("") }
+    val allTimezones = remember { TimeZone.getAvailableIDs().distinct().sorted() }
+    val savedTimezone = session.user?.timezone.orEmpty()
+    val detectedTimezone = DivyaRuntime.getDetectedTimezone()
+    val effectiveTimezone = savedTimezone.ifBlank { detectedTimezone }
+    val timezoneSourceLabel = if (savedTimezone.isBlank()) "Detected from device" else "Set by you"
+    val filteredTimezones = remember(timezoneQuery, allTimezones) {
+        if (timezoneQuery.isBlank()) {
+            allTimezones
+        } else {
+            allTimezones.filter { it.contains(timezoneQuery.trim(), ignoreCase = true) }
+        }
+    }
 
     LaunchedEffect(Unit) {
         runCatching { DivyaRuntime.fetchStreak() }.onSuccess { liveStreak = it }
@@ -58,15 +84,15 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
     Box {
         ScreenScaffold(
             eyebrow = "Devotee profile",
-            title = "Prayer routine and identity",
-            subtitle = "Manage reminders, account details, and support in one calmer profile space.",
+            title = "Manage your profile",
+            subtitle = "Keep your reminders, account details, timezone, and support options in one place.",
             badge = session.user?.let { if (it.isGuest) "Guest session" else "Signed in" } ?: "Offline",
             heroStats = listOf(
                 HeroStat(
                     if ((liveStreak?.current ?: 0) > 0) "${liveStreak?.current} days" else "Not started",
                     "Current streak",
                 ),
-                HeroStat(session.user?.timezone ?: "EST", "Primary timezone"),
+                HeroStat(effectiveTimezone, "Primary timezone"),
                 HeroStat("English", "Primary language"),
                 HeroStat("Morning + evening", "Reminder cadence"),
             ),
@@ -74,11 +100,31 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
             item { DividerLabel("Account") }
 
             item {
-                PanelCard(title = "Account details", subtitle = "Keep identity and location visible without burying settings.") {
-                    InfoRow(label = "Name", value = session.user?.name ?: "Guest Devotee")
+                PanelCard(title = "Account details", subtitle = "Review your identity, location, and preferred devotional context.") {
+                    InfoRow(
+                        label = "Name",
+                        value = productionDisplayName(
+                            rawName = session.user?.name,
+                            fallback = "Guest Devotee",
+                        ),
+                    )
                     InfoRow(label = "Email", value = session.user?.email ?: "Guest session")
                     InfoRow(label = "Country", value = session.user?.country ?: "US")
-                    InfoRow(label = "Timezone", value = session.user?.timezone ?: "America/New_York")
+                    InfoRow(label = "Timezone", value = effectiveTimezone)
+                    Text(
+                        text = timezoneSourceLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DeepBrown.copy(alpha = 0.56f),
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            showTimezonePicker = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Change timezone")
+                    }
                     InfoRow(
                         label = "Preferred deity",
                         value = AppContent.bhagavathi.name.en,
@@ -91,7 +137,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
                         onClick = { DivyaRuntime.signOut() },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Sign out and return to guest mode")
+                        Text("Logout")
                     }
                 }
             }
@@ -99,7 +145,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
             item { DividerLabel("Reminders") }
 
             item {
-                PanelCard(title = "Reminder settings", subtitle = "Tune prayer windows in your own timezone and keep the feedback explicit.") {
+                PanelCard(title = "Reminder settings", subtitle = "Choose the prayer windows that fit your day.") {
                     ReminderToggle(label = "Morning prayer", summary = "7:00 AM local time", checked = morningEnabled, onCheckedChange = { morningEnabled = it })
                     ReminderToggle(label = "Evening aarti", summary = "7:00 PM local time", checked = eveningEnabled, onCheckedChange = { eveningEnabled = it })
                     ReminderToggle(label = "Festival alerts", summary = "Key temple dates", checked = festivalEnabled, onCheckedChange = { festivalEnabled = it })
@@ -113,7 +159,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
                         selected = weekendWindow,
                         onSelect = { weekendWindow = it },
                     )
-                    TextBlock("Windows are evaluated in your timezone: ${session.user?.timezone ?: "America/New_York"}")
+                    TextBlock("Reminder windows use your timezone: $effectiveTimezone")
                     Button(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -121,7 +167,6 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
                             scope.launch {
                                 runCatching {
                                     DivyaRuntime.updateReminderSettings(
-                                        timezone = session.user?.timezone ?: "America/New_York",
                                         morningEnabled = morningEnabled,
                                         eveningEnabled = eveningEnabled,
                                         festivalAlerts = festivalEnabled,
@@ -134,7 +179,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
                                         ),
                                     )
                                 }.onSuccess {
-                                    statusMessage = "Reminder settings synced to the backend."
+                                    statusMessage = "Reminder settings saved."
                                     snackbarHostState.showSnackbar(
                                         message = "Reminder settings saved.",
                                         actionLabel = "success",
@@ -161,7 +206,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
             item { DividerLabel("Support") }
 
             item {
-                PanelCard(title = "Support and contact", subtitle = "Keep help visible, but secondary to prayer and reminder management.") {
+                PanelCard(title = "Support and contact", subtitle = "Reach support quickly for booking, gothram, or technical help.") {
                     TextBlock("Need help with booking, gothram, or technical issues? Contact Divya support.")
                     Button(
                         onClick = {
@@ -180,7 +225,7 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
             item { DividerLabel("Heritage") }
 
             item {
-                PanelCard(title = "Heritage settings", subtitle = "Language stays English-first while still respecting prayer tradition and script depth.") {
+                PanelCard(title = "Language and tradition", subtitle = "Review the language and devotional context currently guiding the app.") {
                     InfoRow(label = "Language model", value = "English-first with Sanskrit and regional script support where appropriate")
                     InfoRow(label = "Streak", value = if ((liveStreak?.current ?: 0) > 0) "${liveStreak?.current} days current" else "Begin today")
                     InfoRow(label = "Longest streak", value = "${liveStreak?.longest ?: 0} days")
@@ -212,6 +257,62 @@ fun ProfileScreen(onOpen: (String) -> Unit) {
                 )
             }
         }
+
+        if (showTimezonePicker) {
+            ModalBottomSheet(
+                onDismissRequest = { showTimezonePicker = false },
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        item {
+                            Text(
+                                text = "Change timezone",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = DeepBrown,
+                            )
+                        }
+                        item {
+                            OutlinedTextField(
+                                value = timezoneQuery,
+                                onValueChange = { timezoneQuery = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Search timezone") },
+                            )
+                        }
+                        items(filteredTimezones) { timezoneId ->
+                            OutlinedButton(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    statusMessage = "Saving timezone..."
+                                    scope.launch {
+                                        runCatching {
+                                            DivyaRuntime.updateTimezone(timezoneId)
+                                        }.onSuccess {
+                                            statusMessage = "Timezone updated."
+                                            timezoneQuery = ""
+                                            showTimezonePicker = false
+                                            snackbarHostState.showSnackbar(
+                                                message = "Timezone updated.",
+                                                actionLabel = "success",
+                                            )
+                                        }.onFailure {
+                                            statusMessage = it.message ?: "Could not update timezone"
+                                            snackbarHostState.showSnackbar(
+                                                message = "Could not update timezone. Please retry.",
+                                                actionLabel = "error",
+                                            )
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(timezoneId, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -222,12 +323,22 @@ private fun ReminderToggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        InfoRow(label = label, value = summary)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    val isCompactPhone = LocalConfiguration.current.screenWidthDp < 380
+    if (isCompactPhone) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                InfoRow(label = label, value = summary)
+                Switch(checked = checked, onCheckedChange = onCheckedChange)
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            InfoRow(label = label, value = summary)
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
     }
 }

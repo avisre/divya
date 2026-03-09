@@ -1,6 +1,7 @@
 package com.divya.android.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
@@ -12,8 +13,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.divya.android.navigation.DivyaRoutes
+import com.divya.android.ui.formatPrice
 import com.divya.android.ui.components.GiftConfirmationCard
 import com.divya.android.ui.components.GiftPujaSheet
 import com.divya.android.ui.components.PujaCard
@@ -21,6 +24,7 @@ import com.divya.android.ui.theme.TempleGold
 
 @Composable
 fun PujaDetailScreen(onOpen: (String) -> Unit) {
+    val isCompactPhone = LocalConfiguration.current.screenWidthDp < 380
     var selectedPujaName by rememberSaveable { mutableStateOf(AppContent.abhishekam.name.en) }
     var showGiftFlow by rememberSaveable { mutableStateOf(false) }
     var giftConfirmed by rememberSaveable { mutableStateOf(false) }
@@ -32,24 +36,47 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
         subtitle = "See what this ritual includes, why families choose it, and how the temple will carry it in your name.",
         badge = "Waitlist only",
         heroStats = listOf(
-            HeroStat("${selectedPuja.displayPrice?.currency ?: "USD"} ${selectedPuja.displayPrice?.amount ?: selectedPuja.pricing.usd}", "Presented price"),
+            HeroStat(
+                formatPrice(
+                    amount = selectedPuja.displayPrice?.amount ?: selectedPuja.pricing.usd,
+                    currencyCode = selectedPuja.displayPrice?.currency ?: "USD",
+                ),
+                "Presented price",
+            ),
             HeroStat("${selectedPuja.duration} min", "Temple duration"),
             HeroStat("${selectedPuja.estimatedWaitWeeks} weeks", "Estimated wait"),
             HeroStat("Private video", "Delivered after completion"),
         ),
         heroContent = {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(onClick = { onOpen(DivyaRoutes.waitlist.route) }, modifier = Modifier.weight(1f)) {
-                    Text("Join waitlist")
+            if (isCompactPhone) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { onOpen(DivyaRoutes.waitlist.route) }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Join waitlist")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            showGiftFlow = true
+                            giftConfirmed = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Gift this puja")
+                    }
                 }
-                OutlinedButton(
-                    onClick = {
-                        showGiftFlow = true
-                        giftConfirmed = false
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Gift this puja")
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { onOpen(DivyaRoutes.waitlist.route) }, modifier = Modifier.weight(1f)) {
+                        Text("Join waitlist")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            showGiftFlow = true
+                            giftConfirmed = false
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Gift this puja")
+                    }
                 }
             }
         },

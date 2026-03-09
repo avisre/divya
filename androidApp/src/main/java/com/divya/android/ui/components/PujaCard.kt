@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.divya.android.ui.formatPrice
 import com.divya.android.ui.screens.BulletList
 import com.divya.android.ui.screens.InfoRow
 import com.divya.android.ui.screens.StatusPill
@@ -57,7 +58,13 @@ fun PujaCard(puja: Puja) {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    InfoRow(label = "Price", value = "${puja.displayPrice?.currency ?: "USD"} ${puja.displayPrice?.amount ?: puja.pricing.usd}")
+                    InfoRow(
+                        label = "Price",
+                        value = formatPrice(
+                            amount = puja.displayPrice?.amount ?: puja.pricing.usd,
+                            currencyCode = puja.displayPrice?.currency ?: "USD",
+                        ),
+                    )
                     InfoRow(label = "Duration", value = "${puja.duration} min")
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {

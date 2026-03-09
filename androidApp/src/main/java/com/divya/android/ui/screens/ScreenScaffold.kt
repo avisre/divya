@@ -25,12 +25,16 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -82,6 +87,11 @@ enum class HeroCardVariant {
     CALENDAR,
     EMPTY,
 }
+
+private val PrimaryActionColor = Color(0xFFC84B0C)
+private val DividerLineColor = Color(0xFFE8D5C4)
+private val EyebrowColor = Color(0xFF8B6B4A)
+private val StatLabelColor = Color(0xFF8B6B4A)
 
 @Composable
 fun ScreenScaffold(
@@ -262,8 +272,12 @@ private fun HeroCard(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = eyebrow.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Dusk,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.5.sp,
+                        ),
+                        color = EyebrowColor,
                     )
                     if (badge != null) {
                         StatusPill(label = badge)
@@ -284,7 +298,9 @@ private fun HeroCard(
             }
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    lineHeight = MaterialTheme.typography.headlineLarge.fontSize * 1.15f,
+                ),
                 color = DeepBrown,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -322,13 +338,21 @@ fun MetricsRow(stats: List<HeroStat>) {
                         ) {
                             Text(
                                 text = stat.value,
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = (-0.3).sp,
+                                ),
                                 color = DeepBrown,
                             )
                             Text(
-                                text = stat.label,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Dusk,
+                                text = stat.label.uppercase(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.8.sp,
+                                ),
+                                color = StatLabelColor,
                             )
                         }
                     }
@@ -520,7 +544,11 @@ fun StatusPill(label: String, color: Color = Saffron) {
         Text(
             text = label,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.5.sp,
+            ),
             color = color,
         )
     }
@@ -563,9 +591,9 @@ fun DividerLabel(label: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        HorizontalDivider(modifier = Modifier.weight(1f), color = Clay)
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = Dusk)
-        HorizontalDivider(modifier = Modifier.weight(1f), color = Clay)
+        HorizontalDivider(modifier = Modifier.weight(1f), color = DividerLineColor)
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = EyebrowColor)
+        HorizontalDivider(modifier = Modifier.weight(1f), color = DividerLineColor)
     }
 }
 
@@ -607,6 +635,70 @@ private fun screenHorizontalPadding(maxWidth: Dp): Dp {
         maxWidth < 840.dp -> 20.dp
         maxWidth < 1200.dp -> 28.dp
         else -> 36.dp
+    }
+}
+
+@Composable
+fun PrimaryActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = PrimaryActionColor,
+            contentColor = Ivory,
+            disabledContainerColor = PrimaryActionColor.copy(alpha = 0.4f),
+            disabledContentColor = Ivory.copy(alpha = 0.92f),
+        ),
+    ) {
+        Text(text)
+    }
+}
+
+@Composable
+fun SecondaryActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        border = BorderStroke(1.5.dp, PrimaryActionColor),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = PrimaryActionColor,
+            disabledContentColor = PrimaryActionColor.copy(alpha = 0.4f),
+        ),
+    ) {
+        Text(text)
+    }
+}
+
+@Composable
+fun TertiaryActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = PrimaryActionColor,
+            disabledContentColor = PrimaryActionColor.copy(alpha = 0.4f),
+        ),
+    ) {
+        Text(text)
     }
 }
 

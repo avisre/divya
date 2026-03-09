@@ -89,33 +89,29 @@ fun MyPujasScreen(onOpen: (String) -> Unit) {
         heroContent = {
             if (isCompactPhone) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    if (liveBookings.isEmpty()) {
-                        OutlinedButton(onClick = { onOpen(DivyaRoutes.puja.route) }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Browse pujas")
-                        }
-                    } else {
-                        Button(onClick = { onOpen(DivyaRoutes.puja.route) }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Browse pujas")
-                        }
-                    }
-                    OutlinedButton(onClick = { onOpen(DivyaRoutes.video.route) }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Open videos")
-                    }
+                    PrimaryActionButton(
+                        text = "Browse pujas",
+                        onClick = { onOpen(DivyaRoutes.puja.route) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    SecondaryActionButton(
+                        text = "Open videos",
+                        onClick = { onOpen(DivyaRoutes.video.route) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    if (liveBookings.isEmpty()) {
-                        OutlinedButton(onClick = { onOpen(DivyaRoutes.puja.route) }, modifier = Modifier.weight(1f)) {
-                            Text("Browse pujas")
-                        }
-                    } else {
-                        Button(onClick = { onOpen(DivyaRoutes.puja.route) }, modifier = Modifier.weight(1f)) {
-                            Text("Browse pujas")
-                        }
-                    }
-                    OutlinedButton(onClick = { onOpen(DivyaRoutes.video.route) }, modifier = Modifier.weight(1f)) {
-                        Text("Open videos")
-                    }
+                    PrimaryActionButton(
+                        text = "Browse pujas",
+                        onClick = { onOpen(DivyaRoutes.puja.route) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    SecondaryActionButton(
+                        text = "Open videos",
+                        onClick = { onOpen(DivyaRoutes.video.route) },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         },

@@ -182,7 +182,8 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
             heroContent = {
                 if (isCompactPhone) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        Button(
+                        PrimaryActionButton(
+                            text = "Find my gothram",
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 wizardDevoteeName = devoteeName
@@ -194,24 +195,22 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .semantics { contentDescription = "Find my gothram button" },
-                        ) {
-                            Text("Find my gothram")
-                        }
-                        Button(
+                        )
+                        SecondaryActionButton(
+                            text = "How tracking works",
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onOpen(DivyaRoutes.myPujas.route)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .semantics { contentDescription = "Open My Pujas button" },
-                        ) {
-                            Text("My pujas")
-                        }
+                                .semantics { contentDescription = "How tracking works button" },
+                        )
                     }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        Button(
+                        PrimaryActionButton(
+                            text = "Find my gothram",
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 wizardDevoteeName = devoteeName
@@ -223,20 +222,17 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
                             modifier = Modifier
                                 .weight(1f)
                                 .semantics { contentDescription = "Find my gothram button" },
-                        ) {
-                            Text("Find my gothram")
-                        }
-                        Button(
+                        )
+                        SecondaryActionButton(
+                            text = "How tracking works",
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onOpen(DivyaRoutes.myPujas.route)
                             },
                             modifier = Modifier
                                 .weight(1f)
-                                .semantics { contentDescription = "Open My Pujas button" },
-                        ) {
-                            Text("My pujas")
-                        }
+                                .semantics { contentDescription = "How tracking works button" },
+                        )
                     }
                 }
             },

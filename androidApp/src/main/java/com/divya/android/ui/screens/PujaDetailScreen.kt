@@ -51,33 +51,35 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
         heroContent = {
             if (isCompactPhone) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(onClick = { onOpen(DivyaRoutes.waitlist.route) }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Join waitlist")
-                    }
-                    OutlinedButton(
+                    PrimaryActionButton(
+                        text = "Join waitlist",
+                        onClick = { onOpen(DivyaRoutes.waitlist.route) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    SecondaryActionButton(
+                        text = "Gift this puja",
                         onClick = {
                             showGiftFlow = true
                             giftConfirmed = false
                         },
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Gift this puja")
-                    }
+                    )
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(onClick = { onOpen(DivyaRoutes.waitlist.route) }, modifier = Modifier.weight(1f)) {
-                        Text("Join waitlist")
-                    }
-                    OutlinedButton(
+                    PrimaryActionButton(
+                        text = "Join waitlist",
+                        onClick = { onOpen(DivyaRoutes.waitlist.route) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    SecondaryActionButton(
+                        text = "Gift this puja",
                         onClick = {
                             showGiftFlow = true
                             giftConfirmed = false
                         },
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Gift this puja")
-                    }
+                    )
                 }
             }
         },

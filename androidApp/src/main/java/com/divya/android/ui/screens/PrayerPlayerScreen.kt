@@ -266,34 +266,41 @@ fun PrayerPlayerScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Button(onClick = { onOpen(DivyaRoutes.nowPlaying.route) }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Audio controls")
-                    }
-                    OutlinedButton(onClick = { onOpen(DivyaRoutes.library.route) }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Browse prayers")
-                    }
+                    PrimaryActionButton(
+                        text = "Audio controls",
+                        onClick = { onOpen(DivyaRoutes.nowPlaying.route) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    SecondaryActionButton(
+                        text = "Browse prayers",
+                        onClick = { onOpen(DivyaRoutes.library.route) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(onClick = { onOpen(DivyaRoutes.nowPlaying.route) }, modifier = Modifier.weight(1f)) {
-                        Text("Audio controls")
-                    }
-                    OutlinedButton(onClick = { onOpen(DivyaRoutes.library.route) }, modifier = Modifier.weight(1f)) {
-                        Text("Browse prayers")
-                    }
+                    PrimaryActionButton(
+                        text = "Audio controls",
+                        onClick = { onOpen(DivyaRoutes.nowPlaying.route) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    SecondaryActionButton(
+                        text = "Browse prayers",
+                        onClick = { onOpen(DivyaRoutes.library.route) },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
             if (BuildConfig.ENABLE_SHARED_PRAYER_PREVIEW) {
-                OutlinedButton(
+                TertiaryActionButton(
+                    text = "Pray together",
                     onClick = {
                         DivyaRuntime.trackEvent("shared_session_created", mapOf("prayer_name" to selectedPrayer.title.en))
                         onOpen(DivyaRoutes.sharedPrayerCreate.route)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = isEntitled,
-                ) {
-                    Text("Pray together")
-                }
+                )
             }
         },
     ) {

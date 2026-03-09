@@ -126,6 +126,7 @@ fun HomeScreen(onOpen: (String) -> Unit) {
         title = if (hasContinuePrayer) "Continue your prayer rhythm" else "Your daily spiritual home",
         subtitle = "Start with one recommended prayer, today’s panchang, and clear temple updates in your local timezone.",
         badge = greeting,
+        heroVariant = HeroCardVariant.HOME,
         heroStats = listOf(
             HeroStat(localizedPanchang.tithi.name, "Today's tithi"),
             HeroStat(localizedPanchang.nakshatra.name, "Nakshatra"),

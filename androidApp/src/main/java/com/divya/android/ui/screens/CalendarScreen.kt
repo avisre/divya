@@ -13,8 +13,9 @@ fun CalendarScreen(onOpen: (String) -> Unit) {
     ScreenScaffold(
         eyebrow = "Festival calendar",
         title = "Temple rhythm across timezones",
-        subtitle = "Calendar includes 15 festivals, diaspora context, and preparation journeys that drive daily return usage.",
-        badge = "Timezone-aware + prep ready",
+        subtitle = "Follow upcoming festivals, today’s sacred timings, and simple preparation guidance in one place.",
+        badge = "Festival guidance",
+        heroVariant = HeroCardVariant.CALENDAR,
         heroStats = listOf(
             HeroStat("${AppContent.festivalCalendar.size}", "Festivals tracked"),
             HeroStat("Today", "Ekadashi"),
@@ -50,7 +51,7 @@ fun CalendarScreen(onOpen: (String) -> Unit) {
         }
         item {
             Button(onClick = { onOpen(DivyaRoutes.festival.route) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Open festival preparation journey")
+                Text("View festival preparation")
             }
         }
     }

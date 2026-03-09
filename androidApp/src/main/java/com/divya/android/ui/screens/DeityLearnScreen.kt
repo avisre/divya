@@ -21,6 +21,7 @@ fun DeityLearnScreen(onOpen: (String) -> Unit) {
     val completed = remember { mutableStateListOf(1, 2, 3) }
     val modules = AppContent.bhagavathiLearningModules
     val progress = completed.size.toFloat() / modules.size.toFloat()
+    val remainingLockedModules = modules.count { it.locked }
 
     ScreenScaffold(
         eyebrow = "Deity learning path",
@@ -30,8 +31,15 @@ fun DeityLearnScreen(onOpen: (String) -> Unit) {
         heroStats = listOf(
             HeroStat("${(progress * 100).toInt()}%", "Path progress"),
             HeroStat("8", "Total modules"),
-            HeroStat("Bhakt+", "Unlock all modules"),
         ),
+        heroContent = {
+            if (remainingLockedModules > 0) {
+                StatusPill(
+                    label = "🔒 Unlock remaining $remainingLockedModules modules",
+                    color = TempleGold,
+                )
+            }
+        },
     ) {
         item {
             PanelCard(title = "Learning path progress") {

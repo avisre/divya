@@ -1,8 +1,15 @@
 package com.divya.android.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -14,15 +21,26 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.divya.android.app.BookingSummary
 import com.divya.android.app.DivyaRuntime
 import com.divya.android.navigation.DivyaRoutes
 import com.divya.android.ui.components.WaitlistStatusCard
+import com.divya.android.ui.theme.Clay
+import com.divya.android.ui.theme.DeepBrown
+import com.divya.android.ui.theme.Ivory
+import com.divya.android.ui.theme.Saffron
 
 @Composable
 fun MyPujasScreen(onOpen: (String) -> Unit) {
+    val isCompactPhone = LocalConfiguration.current.screenWidthDp < 380
     var topTab by rememberSaveable { mutableStateOf("My bookings") }
     var selectedState by rememberSaveable { mutableStateOf("All statuses") }
     val liveBookings = remember { mutableStateListOf<BookingSummary>() }
@@ -54,22 +72,50 @@ fun MyPujasScreen(onOpen: (String) -> Unit) {
 
     ScreenScaffold(
         eyebrow = "Booking tracker",
-        title = "Track your pujas clearly",
-        subtitle = "See every waitlist, confirmed ritual, and sacred video in one orderly place instead of chasing status across the app.",
-        badge = if (liveBookings.isEmpty()) "No active booking" else "$activeBookingCount active",
-        heroStats = listOf(
-            HeroStat("${liveBookings.size}", "Total bookings"),
-            HeroStat("${filteredBookings.size}", "Visible now"),
-            HeroStat("${videoReadyCount}", "Videos ready"),
-            HeroStat(topTab, "Current view"),
-        ),
+        title = "Your pujas in one place",
+        subtitle = "Review waitlists, confirmed rituals, gifted pujas, and sacred videos without losing track of any booking.",
+        badge = if (liveBookings.isEmpty()) "No active bookings" else "$activeBookingCount active",
+        heroVariant = if (liveBookings.isEmpty()) HeroCardVariant.EMPTY else HeroCardVariant.PUJA,
+        heroStats = if (liveBookings.isEmpty()) {
+            emptyList()
+        } else {
+            listOf(
+                HeroStat("${liveBookings.size}", "Total bookings"),
+                HeroStat("${filteredBookings.size}", "Visible now"),
+                HeroStat("${videoReadyCount}", "Videos ready"),
+                HeroStat(topTab, "Current view"),
+            )
+        },
         heroContent = {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(onClick = { onOpen(DivyaRoutes.puja.route) }, modifier = Modifier.weight(1f)) {
-                    Text("Browse pujas")
+            if (isCompactPhone) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    if (liveBookings.isEmpty()) {
+                        OutlinedButton(onClick = { onOpen(DivyaRoutes.puja.route) }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Browse pujas")
+                        }
+                    } else {
+                        Button(onClick = { onOpen(DivyaRoutes.puja.route) }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Browse pujas")
+                        }
+                    }
+                    OutlinedButton(onClick = { onOpen(DivyaRoutes.video.route) }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Open videos")
+                    }
                 }
-                OutlinedButton(onClick = { onOpen(DivyaRoutes.video.route) }, modifier = Modifier.weight(1f)) {
-                    Text("Open videos")
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    if (liveBookings.isEmpty()) {
+                        OutlinedButton(onClick = { onOpen(DivyaRoutes.puja.route) }, modifier = Modifier.weight(1f)) {
+                            Text("Browse pujas")
+                        }
+                    } else {
+                        Button(onClick = { onOpen(DivyaRoutes.puja.route) }, modifier = Modifier.weight(1f)) {
+                            Text("Browse pujas")
+                        }
+                    }
+                    OutlinedButton(onClick = { onOpen(DivyaRoutes.video.route) }, modifier = Modifier.weight(1f)) {
+                        Text("Open videos")
+                    }
                 }
             }
         },
@@ -137,16 +183,9 @@ fun MyPujasScreen(onOpen: (String) -> Unit) {
         if (liveBookings.isEmpty()) {
             item {
                 PanelCard(
-                    title = "No active puja yet",
-                    subtitle = "Once a waitlist is joined, the reference, status trail, and private video delivery will appear here.",
+                    title = "No active bookings",
                 ) {
-                    BulletList(
-                        items = listOf(
-                            "Browse pujas and choose the ritual that fits your family need.",
-                            "Save devotee details and intention before booking opens.",
-                            "Return here for live tracking once the waitlist is active.",
-                        ),
-                    )
+                    EmptyPujaStateArtwork()
                 }
             }
         } else if (filteredBookings.isEmpty()) {
@@ -169,18 +208,32 @@ fun MyPujasScreen(onOpen: (String) -> Unit) {
                         InfoRow(label = "Temple", value = booking.templeName)
                         InfoRow(label = "Payment", value = booking.paymentStatus.replaceFirstChar { it.uppercase() })
                         InfoRow(label = "Intention", value = booking.prayerIntention)
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Button(onClick = { onOpen(DivyaRoutes.waitlist.route) }, modifier = Modifier.weight(1f)) {
-                                Text("Booking details")
+                        if (isCompactPhone) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                                Button(onClick = { onOpen(DivyaRoutes.waitlist.route) }, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Booking details")
+                                }
+                                OutlinedButton(
+                                    onClick = { onOpen(if (booking.hasVideo) DivyaRoutes.video.route else DivyaRoutes.temple.route) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(if (booking.hasVideo) "Watch video" else "Temple updates")
+                                }
                             }
-                            OutlinedButton(
-                                onClick = { onOpen(if (booking.hasVideo) DivyaRoutes.video.route else DivyaRoutes.temple.route) },
-                                modifier = Modifier.weight(1f),
+                        } else {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text(if (booking.hasVideo) "Watch video" else "Temple updates")
+                                Button(onClick = { onOpen(DivyaRoutes.waitlist.route) }, modifier = Modifier.weight(1f)) {
+                                    Text("Booking details")
+                                }
+                                OutlinedButton(
+                                    onClick = { onOpen(if (booking.hasVideo) DivyaRoutes.video.route else DivyaRoutes.temple.route) },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(if (booking.hasVideo) "Watch video" else "Temple updates")
+                                }
                             }
                         }
                     }
@@ -199,5 +252,50 @@ fun MyPujasScreen(onOpen: (String) -> Unit) {
                 AccentNote(title = "Live sync", body = message)
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyPujaStateArtwork() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Saffron.copy(alpha = 0.14f), Color.Transparent),
+                    ),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .border(1.dp, Clay.copy(alpha = 0.72f), CircleShape)
+                    .background(Ivory.copy(alpha = 0.65f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "\u0950",
+                    color = DeepBrown,
+                    modifier = Modifier.alpha(0.3f),
+                )
+            }
+        }
+        Text(
+            text = "Your puja journey starts here",
+            color = DeepBrown,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = "Browse pujas, save your devotee details, and join a waitlist - your bookings and sacred videos will appear here.",
+            color = DeepBrown.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
     }
 }

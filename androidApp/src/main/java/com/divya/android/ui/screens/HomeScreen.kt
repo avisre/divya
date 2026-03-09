@@ -29,6 +29,9 @@ import com.divya.android.app.UserStatsSummary
 import com.divya.android.app.UserStreakSummary
 import com.divya.android.media.PrayerAudioPlayer
 import com.divya.android.navigation.DivyaRoutes
+import com.divya.android.ui.joinUiSegments
+import com.divya.android.ui.sanitizeUiSegment
+import com.divya.android.ui.sanitizeUiText
 import com.divya.android.ui.components.DailyPrayerCard
 import com.divya.android.ui.components.OfflineBanner
 import com.divya.android.ui.components.OfflineBannerState
@@ -114,14 +117,14 @@ fun HomeScreen(onOpen: (String) -> Unit) {
         runCatching {
             DivyaRuntime.fetchDailyRecommendation(localizedPanchang.timezone)
         }.onSuccess { remote ->
-            recommendation = mergeDailyRecommendation(remote)
+            recommendation = mergeDailyRecommendation(remote, localizedPanchang)
         }
     }
 
     ScreenScaffold(
         eyebrow = "Today's practice",
         title = if (hasContinuePrayer) "Continue your prayer rhythm" else "Your daily spiritual home",
-        subtitle = "Start with one recommended prayer, today's panchang, and clear temple updates in your local timezone.",
+        subtitle = "Start with one recommended prayer, today’s panchang, and clear temple updates in your local timezone.",
         badge = greeting,
         heroStats = listOf(
             HeroStat(localizedPanchang.tithi.name, "Today's tithi"),
@@ -230,7 +233,7 @@ fun HomeScreen(onOpen: (String) -> Unit) {
         item {
             PanelCard(
                 title = "Stay connected to Karunagapally",
-                subtitle = "Temple timings, festival context, and booking actions are grouped here so the page stays focused.",
+                subtitle = "Keep temple timings, festival context, and booking actions close at hand.",
             ) {
                 InfoRow(label = "Temple", value = AppContent.temple.name.en)
                 InfoRow(label = "Reference timezone", value = "Asia/Kolkata (IST)")
@@ -285,7 +288,7 @@ fun HomeScreen(onOpen: (String) -> Unit) {
         item {
             PanelCard(
                 title = "Continue learning",
-                subtitle = "One next step keeps the page calm without hiding deeper content.",
+                subtitle = "Take one meaningful next step without leaving your daily rhythm.",
             ) {
                 TextBlock("Module ${AppContent.learningPathPreview.order}: ${AppContent.learningPathPreview.title}")
                 TagRow(
@@ -405,13 +408,21 @@ private fun JSONObject.optNullableString(key: String): String? {
     return value.takeIf { it.isNotEmpty() }
 }
 
-private fun mergeDailyRecommendation(remote: DailyRecommendationRemote): AppContent.DailyRecommendation {
+private fun mergeDailyRecommendation(
+    remote: DailyRecommendationRemote,
+    panchang: Panchang,
+): AppContent.DailyRecommendation {
     val fromTitle = remote.prayerTitle?.let { title ->
         AppContent.prayerLibrary108.firstOrNull { it.title.en.equals(title, ignoreCase = true) }
     }
     val resolvedPrayer = fromTitle ?: AppContent.dailyRecommendation.prayer
-    val reasonParts = listOfNotNull(remote.reason, remote.festival, remote.tithiName).distinct()
-    val reason = reasonParts.joinToString(" | ").ifBlank { AppContent.dailyRecommendation.reason }
+    val reasonParts = listOf(remote.reason, remote.festival, remote.tithiName)
+        .flatMap { sanitizeUiText(it).split("|") }
+        .mapNotNull(::sanitizeUiSegment)
+    val reason = joinUiSegments(
+        *reasonParts.toTypedArray(),
+        panchang.nakshatra.name,
+    ).ifBlank { AppContent.dailyRecommendation.reason }
     return AppContent.dailyRecommendation.copy(
         prayer = resolvedPrayer,
         reason = reason,

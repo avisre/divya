@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.divya.android.BuildConfig
 import com.divya.android.app.ContactFormRequest
 import com.divya.android.app.DivyaRuntime
+import com.divya.android.ui.productionDisplayName
 import com.divya.android.ui.theme.AlertMarigold
 import com.divya.android.ui.theme.DeepBrown
 import com.divya.android.ui.theme.SuccessLeaf
@@ -36,13 +37,28 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileContactScreen() {
+    val categoryOptions = listOf("booking_help", "gothram_help", "technical_issue", "video_help", "general")
+    val categoryLabels = mapOf(
+        "booking_help" to "Booking help",
+        "gothram_help" to "Gothram help",
+        "technical_issue" to "Technical issue",
+        "video_help" to "Video help",
+        "general" to "General",
+    )
     val session by DivyaRuntime.sessionState.collectAsState()
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
-    var name by rememberSaveable { mutableStateOf(session.user?.name ?: "") }
+    var name by rememberSaveable {
+        mutableStateOf(
+            productionDisplayName(
+                rawName = session.user?.name,
+                fallback = "",
+            ),
+        )
+    }
     var email by rememberSaveable { mutableStateOf(session.user?.email ?: "") }
-    var category by rememberSaveable { mutableStateOf("other") }
+    var category by rememberSaveable { mutableStateOf("general") }
     var subject by rememberSaveable { mutableStateOf("") }
     var message by rememberSaveable { mutableStateOf("") }
     var bookingReference by rememberSaveable { mutableStateOf("") }
@@ -66,7 +82,7 @@ fun ProfileContactScreen() {
             badge = "Profile contact",
             heroStats = listOf(
                 HeroStat("24-48h", "Typical response window"),
-                HeroStat(session.user?.timezone ?: "America/New_York", "Your timezone"),
+                HeroStat(session.user?.timezone?.ifBlank { DivyaRuntime.getDetectedTimezone() } ?: DivyaRuntime.getDetectedTimezone(), "Your timezone"),
                 HeroStat("Email", "Response channel"),
                 HeroStat("Tracked", "Request stored in profile"),
             ),
@@ -86,9 +102,11 @@ fun ProfileContactScreen() {
                         label = { Text("Email") },
                     )
                     SelectableTagRow(
-                        options = listOf("booking_help", "gothram_help", "technical_issue", "feature_request", "other"),
-                        selected = category,
-                        onSelect = { category = it },
+                        options = categoryOptions.mapNotNull { categoryLabels[it] },
+                        selected = categoryLabels[category] ?: category,
+                        onSelect = { selectedLabel ->
+                            category = categoryOptions.firstOrNull { categoryLabels[it] == selectedLabel } ?: "general"
+                        },
                     )
                     OutlinedTextField(
                         value = subject,

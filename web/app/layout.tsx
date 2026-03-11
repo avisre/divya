@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Cormorant_Garamond, Nunito } from "next/font/google";
-import "@/app/globals.css";
-import { SiteShell } from "@/components/shell/SiteShell";
-import { SITE_URL } from "@/lib/env";
-import { getOptionalSession } from "@/lib/session";
+import "./globals.css";
+import { SiteShell } from "../components/shell/SiteShell";
+import { SITE_URL } from "../lib/env";
+import { getOptionalSession } from "../lib/session";
 
 const displayFont = Cormorant_Garamond({
   subsets: ["latin"],

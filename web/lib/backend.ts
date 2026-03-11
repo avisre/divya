@@ -1,5 +1,5 @@
-import { BACKEND_API_BASE_URL } from "@/lib/env";
-import type { ApiErrorPayload } from "@/lib/types";
+import { BACKEND_API_BASE_URL } from "./env";
+import type { ApiErrorPayload } from "./types";
 
 export class BackendError extends Error {
   status: number;

@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { fetchBackend } from "@/lib/backend";
-import { IS_PRODUCTION } from "@/lib/env";
-import type { UserSession } from "@/lib/types";
+import { fetchBackend } from "./backend";
+import { IS_PRODUCTION } from "./env";
+import type { UserSession } from "./types";
 
 export const SESSION_COOKIE = "divya_web_session";
 

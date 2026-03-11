@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { sendJson } from "@/lib/client-api";
-import { Button } from "@/components/ui/Button";
-import { StatusStrip } from "@/components/ui/StatusStrip";
-import type { Prayer, SharedPrayerSession } from "@/lib/types";
+import { sendJson } from "../../lib/client-api";
+import { Button } from "../ui/Button";
+import { StatusStrip } from "../ui/StatusStrip";
+import type { Prayer, SharedPrayerSession } from "../../lib/types";
 
 export function SharedPrayerCreateForm({ prayers }: { prayers: Prayer[] }) {
   const router = useRouter();

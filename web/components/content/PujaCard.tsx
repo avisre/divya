@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/Button";
-import { formatPrice } from "@/lib/format";
-import type { Puja } from "@/lib/types";
+import { Button } from "../ui/Button";
+import { formatPrice } from "../../lib/format";
+import type { Puja } from "../../lib/types";
 
 export function PujaCard({ puja, currency = "USD" }: { puja: Puja; currency?: string }) {
   return (

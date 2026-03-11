@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { sendJson } from "@/lib/client-api";
+import { sendJson } from "../../lib/client-api";
 
 export function OAuthCompleteClient() {
   const router = useRouter();

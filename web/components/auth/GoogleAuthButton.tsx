@@ -1,4 +1,4 @@
-import { BACKEND_ORIGIN } from "@/lib/env";
+import { BACKEND_ORIGIN } from "../../lib/env";
 
 export function GoogleAuthButton({ returnTo = "/home" }: { returnTo?: string }) {
   const href = `${BACKEND_ORIGIN}/api/auth/oauth/google/start?returnTo=${encodeURIComponent(returnTo)}`;

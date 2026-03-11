@@ -1,9 +1,9 @@
-import { Hero } from "@/components/content/Hero";
-import { MetricGrid } from "@/components/content/MetricGrid";
-import { Section } from "@/components/content/Section";
-import { ProfileForm } from "@/components/forms/ProfileForm";
-import { getProfile, getStats } from "@/lib/data";
-import { requireSession } from "@/lib/session";
+import { Hero } from "../../components/content/Hero";
+import { MetricGrid } from "../../components/content/MetricGrid";
+import { Section } from "../../components/content/Section";
+import { ProfileForm } from "../../components/forms/ProfileForm";
+import { getProfile, getStats } from "../../lib/data";
+import { requireSession } from "../../lib/session";
 
 export default async function ProfilePage() {
   const session = await requireSession("/profile");

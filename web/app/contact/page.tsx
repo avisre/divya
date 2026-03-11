@@ -1,7 +1,7 @@
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { SupportForm } from "@/components/forms/SupportForm";
-import { requireSession } from "@/lib/session";
+import { Hero } from "../../components/content/Hero";
+import { Section } from "../../components/content/Section";
+import { SupportForm } from "../../components/forms/SupportForm";
+import { requireSession } from "../../lib/session";
 
 export default async function ContactPage() {
   const session = await requireSession("/contact");

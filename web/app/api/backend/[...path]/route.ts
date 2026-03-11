@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { fetchBackendResponse } from "@/lib/backend";
-import { getAuthToken } from "@/lib/session";
+import { fetchBackendResponse } from "../../../../lib/backend";
+import { getAuthToken } from "../../../../lib/session";
 
 async function proxy(request: Request, params: { path: string[] }) {
   const token = await getAuthToken();

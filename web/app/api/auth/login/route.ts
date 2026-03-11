@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { loginUser } from "@/lib/data";
-import { setSessionCookie } from "@/lib/session";
+import { loginUser } from "../../../../lib/data";
+import { setSessionCookie } from "../../../../lib/session";
 
 export async function POST(request: Request) {
   try {

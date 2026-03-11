@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { sendJson } from "@/lib/client-api";
-import { Button } from "@/components/ui/Button";
-import { StatusStrip } from "@/components/ui/StatusStrip";
-import type { Puja } from "@/lib/types";
+import { sendJson } from "../../lib/client-api";
+import { Button } from "../ui/Button";
+import { StatusStrip } from "../ui/StatusStrip";
+import type { Puja } from "../../lib/types";
 
 type BookingValues = {
   devoteeName: string;

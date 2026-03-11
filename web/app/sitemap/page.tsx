@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
+import { Hero } from "../../components/content/Hero";
+import { Section } from "../../components/content/Section";
 
 const publicRoutes = [
   ["/", "Landing"],

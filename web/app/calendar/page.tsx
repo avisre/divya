@@ -1,8 +1,8 @@
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { formatDate, formatRelativeDays } from "@/lib/format";
-import { getFestivals, getPanchangUpcoming } from "@/lib/data";
-import { getOptionalSession } from "@/lib/session";
+import { Hero } from "../../components/content/Hero";
+import { Section } from "../../components/content/Section";
+import { formatDate, formatRelativeDays } from "../../lib/format";
+import { getFestivals, getPanchangUpcoming } from "../../lib/data";
+import { getOptionalSession } from "../../lib/session";
 
 export default async function CalendarPage() {
   const session = await getOptionalSession();

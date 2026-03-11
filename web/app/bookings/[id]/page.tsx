@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { Button } from "@/components/ui/Button";
-import { formatDate, formatPrice } from "@/lib/format";
-import { getBooking } from "@/lib/data";
-import { requireSession } from "@/lib/session";
+import { Hero } from "../../../components/content/Hero";
+import { Section } from "../../../components/content/Section";
+import { Button } from "../../../components/ui/Button";
+import { formatDate, formatPrice } from "../../../lib/format";
+import { getBooking } from "../../../lib/data";
+import { requireSession } from "../../../lib/session";
 
 export default async function BookingDetailPage({
   params

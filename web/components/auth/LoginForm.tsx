@@ -3,10 +3,10 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { sendJson } from "@/lib/client-api";
-import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
-import { Button } from "@/components/ui/Button";
-import { StatusStrip } from "@/components/ui/StatusStrip";
+import { sendJson } from "../../lib/client-api";
+import { GoogleAuthButton } from "./GoogleAuthButton";
+import { Button } from "../ui/Button";
+import { StatusStrip } from "../ui/StatusStrip";
 
 type LoginValues = {
   email: string;

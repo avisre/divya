@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { Button } from "@/components/ui/Button";
-import { getLearningModule } from "@/lib/data";
-import { requireSession } from "@/lib/session";
+import { Hero } from "../../../../../components/content/Hero";
+import { Section } from "../../../../../components/content/Section";
+import { Button } from "../../../../../components/ui/Button";
+import { getLearningModule } from "../../../../../lib/data";
+import { requireSession } from "../../../../../lib/session";
 
 export default async function LearningModulePage({
   params

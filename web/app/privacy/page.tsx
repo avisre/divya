@@ -1,5 +1,5 @@
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
+import { Hero } from "../../components/content/Hero";
+import { Section } from "../../components/content/Section";
 
 export default function PrivacyPage() {
   return (

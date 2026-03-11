@@ -132,7 +132,7 @@ const userSchema = new mongoose.Schema({
   profilePicture: String,
   role: { type: String, enum: ["user", "admin"], default: "user" },
   country: { type: String, default: "US" },
-  timezone: { type: String, default: "America/New_York" },
+  timezone: { type: String, trim: true },
   currency: { type: String, default: "USD" },
   onboarding: onboardingSchema,
   preferredDeity: { type: mongoose.Schema.Types.ObjectId, ref: "Deity" },

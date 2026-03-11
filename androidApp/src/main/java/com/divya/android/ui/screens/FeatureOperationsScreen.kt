@@ -12,10 +12,10 @@ import com.divya.android.ui.components.WaitlistStatusCard
 @Composable
 fun FeatureOperationsScreen() {
     ScreenScaffold(
-        eyebrow = "Operational states",
-        title = "Feature states",
-        subtitle = "Review important product states such as offline prayer access, waitlist updates, sacred video delivery, and upgrade prompts.",
-        badge = "System states",
+        eyebrow = "Reference states",
+        title = "Experience states",
+        subtitle = "Review how important surfaces appear when prayer access, waitlist updates, video delivery, or upgrades are in different states.",
+        badge = "Reference",
         heroStats = listOf(
             HeroStat("Offline", "Cached prayers"),
             HeroStat("Waitlist", "Status cards"),
@@ -25,15 +25,15 @@ fun FeatureOperationsScreen() {
     ) {
         item { OfflineBanner() }
         item { WaitlistStatusCard("In progress | your puja is happening now") }
-        item { VideoProcessingCard() }
-        item { PujaVideoCard(streamUrl = null, shareUrl = null, onVideoStarted = {}) }
+        item { VideoProcessingCard(videoStatus = "processing") }
+        item { PujaVideoCard(streamUrl = null, shareUrl = null, videoStatus = "booked", onVideoStarted = {}) }
         item { PujaShareCard() }
         item { NakshatraPickerSheet() }
         item { UpgradePromptSheet() }
         item {
             AccentNote(
-                title = "Live notification support",
-                body = "Prayer and puja progress surfaces are designed to map cleanly into Android live notifications.",
+                title = "Notification support",
+                body = "Prayer and puja progress can also appear in Android notifications when playback or temple activity is active.",
             )
         }
     }

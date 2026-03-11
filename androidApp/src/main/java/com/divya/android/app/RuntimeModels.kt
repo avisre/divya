@@ -20,6 +20,7 @@ data class BookingSummary(
     val id: String,
     val bookingReference: String,
     val status: String,
+    val videoStatus: String,
     val waitlistPosition: Int?,
     val paymentStatus: String,
     val pujaName: String,

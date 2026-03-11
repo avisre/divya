@@ -2,6 +2,7 @@ import { Router } from "express";
 import { auth } from "../middleware/auth.js";
 import {
   guest,
+  googleMobileLogin,
   login,
   me,
   oauthCallback,
@@ -17,6 +18,7 @@ const authLimiter = createRateLimiter({ key: "auth", windowMs: 60_000, max: 25, 
 
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
+router.post("/google/mobile", authLimiter, googleMobileLogin);
 router.post("/guest", authLimiter, guest);
 router.get("/oauth/providers", oauthProviders);
 router.get("/oauth/:provider/start", authLimiter, oauthStart);

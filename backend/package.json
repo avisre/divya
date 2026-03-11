@@ -8,6 +8,7 @@
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
     "seed": "node src/seed/seedData.js",
+    "sync:audio": "node scripts/syncPrayerAudioFromAndroidRaw.mjs",
     "verify": "node scripts/verifyBackend.mjs",
     "migrate:prayers": "node scripts/normalizePrayerIds.mjs",
     "test:contract:prayers": "node scripts/contractPrayers.mjs",

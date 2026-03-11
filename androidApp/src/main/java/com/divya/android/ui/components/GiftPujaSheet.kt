@@ -38,7 +38,7 @@ fun GiftPujaSheet(
                 onSelect = {},
             )
             Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
-                Text("Continue gift flow")
+                Text("Start gift flow")
             }
             OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel")

@@ -7,12 +7,12 @@ fun SplashScreen() {
     ScreenScaffold(
         eyebrow = "Divya",
         title = "A sacred bridge to Karunagapally",
-        subtitle = "Warm, premium, and rooted in Kerala temple tradition for diaspora families who cannot simply walk to a temple.",
-        badge = "Guest mode enabled",
+        subtitle = "A calm prayer home rooted in Kerala temple tradition for families living away from the temple.",
+        badge = "Welcome",
         heroStats = listOf(
-            HeroStat("USA · UK · Canada", "Primary audiences"),
+            HeroStat("USA | UK | Canada", "Primary audiences"),
             HeroStat("Kerala", "Single temple source"),
-            HeroStat("Compose", "Android native UI"),
+            HeroStat("Prayer + puja", "Daily rhythm"),
         ),
     ) {
         item {

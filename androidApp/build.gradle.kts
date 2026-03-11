@@ -26,6 +26,7 @@ fun readConfig(name: String, defaultValue: String): String {
 val apiUrlDebug = readConfig("DIVYA_API_URL_DEBUG", readConfig("DIVYA_API_URL", "http://10.0.2.2:5000/api"))
 val apiUrlRelease = readConfig("DIVYA_API_URL_RELEASE", "https://divya-twug.onrender.com/api")
 val apiUrlDevice = readConfig("DIVYA_API_URL_DEVICE", readConfig("DIVYA_API_URL", "http://10.0.2.2:5000/api"))
+val googleWebClientId = readConfig("GOOGLE_WEB_CLIENT_ID", "")
 val playUploadStoreFile = readConfig("PLAY_UPLOAD_STORE_FILE", "")
 val playUploadStorePassword = readConfig("PLAY_UPLOAD_STORE_PASSWORD", "")
 val playUploadKeyAlias = readConfig("PLAY_UPLOAD_KEY_ALIAS", "")
@@ -38,17 +39,18 @@ val hasReleaseSigning =
 
 android {
     namespace = "com.divya.android"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.divya.prayerapp"
+        applicationId = "com.divya.prayerapp.avinash"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 8
-        versionName = "0.8.0"
+        targetSdk = 35
+        versionCode = 16
+        versionName = "16.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "DIVYA_API_URL", "\"$apiUrlDebug\"")
         buildConfigField("String", "DIVYA_API_URL_DEVICE", "\"$apiUrlDevice\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
         buildConfigField("String", "APP_PLATFORM", "\"android\"")
         buildConfigField("boolean", "ENABLE_GALLERY_TOOLS", "true")
     }
@@ -89,6 +91,7 @@ android {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
             buildConfigField("String", "DIVYA_API_URL", "\"$apiUrlDebug\"")
             buildConfigField("String", "DIVYA_API_URL_DEVICE", "\"$apiUrlDevice\"")
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
             buildConfigField("boolean", "ENABLE_GALLERY_TOOLS", "true")
             buildConfigField("boolean", "ENABLE_SHARED_PRAYER_PREVIEW", "true")
         }
@@ -98,6 +101,7 @@ android {
             manifestPlaceholders["usesCleartextTraffic"] = "false"
             buildConfigField("String", "DIVYA_API_URL", "\"$apiUrlRelease\"")
             buildConfigField("String", "DIVYA_API_URL_DEVICE", "\"$apiUrlRelease\"")
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
             buildConfigField("boolean", "ENABLE_GALLERY_TOOLS", "false")
             buildConfigField("boolean", "ENABLE_SHARED_PRAYER_PREVIEW", "false")
             if (hasReleaseSigning) {
@@ -126,6 +130,9 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.core:core:1.13.1")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")

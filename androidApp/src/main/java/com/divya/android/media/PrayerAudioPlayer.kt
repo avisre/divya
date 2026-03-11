@@ -97,6 +97,8 @@ object PrayerAudioPlayer {
         val exoPlayer = ensurePlayer() ?: return
         saveCurrentPrayerPosition()
         if (sourceUri == null) {
+            exoPlayer.pause()
+            exoPlayer.clearMediaItems()
             _state.value = _state.value.copy(
                 prayerId = prayerId,
                 title = title,
@@ -108,6 +110,8 @@ object PrayerAudioPlayer {
             return
         }
         if (!isSupportedSourceUri(sourceUri)) {
+            exoPlayer.pause()
+            exoPlayer.clearMediaItems()
             _state.value = _state.value.copy(
                 prayerId = prayerId,
                 title = title,

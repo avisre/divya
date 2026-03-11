@@ -32,6 +32,13 @@ const prayerSchema = new mongoose.Schema(
     beginnerNote: String,
     meaning: String,
     audioUrl: { type: String, default: null },
+    verseTimings: [
+      {
+        lineIndex: { type: Number, required: true },
+        startMs: { type: Number, required: true },
+        endMs: { type: Number, required: true }
+      }
+    ],
     audioChecksumSha256: String,
     audioCodec: String,
     audioLicenseTag: { type: String, default: "licensed_devotional" },

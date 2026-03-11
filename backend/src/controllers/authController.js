@@ -2,10 +2,12 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { OAuth2Client } from "google-auth-library";
 import { User } from "../models/User.js";
 import { ApiError, createValidationError } from "../utils/ApiError.js";
 
 dotenv.config();
+const googleTokenClient = new OAuth2Client();
 
 function signToken(user) {
   return jwt.sign({ id: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
@@ -20,7 +22,7 @@ function serializeUser(user) {
     email: user.email,
     role: user.role,
     country: user.country,
-    timezone: user.timezone,
+    timezone: user.timezone || "",
     currency: user.currency,
     onboarding: user.onboarding,
     subscription: user.subscription,
@@ -30,12 +32,18 @@ function serializeUser(user) {
   };
 }
 
+function normalizeTimezone(value) {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : undefined;
+}
+
 function buildBackendBaseUrl(req) {
   return `${req.protocol}://${req.get("host")}`;
 }
 
 function getWebAppBaseUrl() {
-  return (process.env.WEB_APP_URL || "http://localhost:5173").replace(/\/+$/, "");
+  return (process.env.WEB_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
 }
 
 function sanitizeReturnTo(value) {
@@ -159,6 +167,49 @@ async function exchangeGoogleCode(config, code) {
     email,
     name: profile.name || email.split("@")[0],
     picture: profile.picture || null
+  };
+}
+
+function getGoogleAudienceList() {
+  const audiences = new Set();
+  const primary = String(process.env.GOOGLE_OAUTH_CLIENT_ID || "").trim();
+  if (primary) {
+    audiences.add(primary);
+  }
+  const androidWebClient = String(process.env.GOOGLE_ANDROID_WEB_CLIENT_ID || "").trim();
+  if (androidWebClient) {
+    audiences.add(androidWebClient);
+  }
+  const extras = String(process.env.GOOGLE_OAUTH_ALLOWED_AUDIENCES || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  extras.forEach((item) => audiences.add(item));
+  return Array.from(audiences);
+}
+
+async function verifyGoogleIdTokenForMobile(idToken) {
+  const audiences = getGoogleAudienceList();
+  if (!audiences.length) {
+    throw createValidationError("Google OAuth audience is not configured");
+  }
+
+  const ticket = await googleTokenClient.verifyIdToken({
+    idToken,
+    audience: audiences
+  });
+  const payload = ticket.getPayload() || {};
+  const email = String(payload.email || "").toLowerCase().trim();
+  if (!email) {
+    throw createValidationError("Google account email unavailable");
+  }
+
+  return {
+    provider: "google",
+    providerId: String(payload.sub || ""),
+    email,
+    name: String(payload.name || email.split("@")[0] || "Divya Devotee"),
+    picture: payload.picture || null
   };
 }
 
@@ -337,7 +388,7 @@ export async function oauthCallback(req, res) {
 
 export async function register(req, res, next) {
   try {
-    const { name, email, password, country = "US", timezone = "America/New_York" } = req.body;
+    const { name, email, password, country = "US", timezone } = req.body;
     if (!name || typeof name !== "string") {
       throw createValidationError("Name is required");
     }
@@ -360,7 +411,7 @@ export async function register(req, res, next) {
       email: normalizedEmail,
       password: hash,
       country,
-      timezone
+      timezone: normalizeTimezone(timezone)
     });
 
     const token = signToken(user);
@@ -389,6 +440,22 @@ export async function login(req, res, next) {
       throw new ApiError("AUTH_REQUIRED", "Invalid credentials");
     }
 
+    const token = signToken(user);
+    return res.json({ token, user: serializeUser(user) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function googleMobileLogin(req, res, next) {
+  try {
+    const idToken = String(req.body?.idToken || "").trim();
+    if (!idToken) {
+      throw createValidationError("Google idToken is required");
+    }
+
+    const oauthProfile = await verifyGoogleIdTokenForMobile(idToken);
+    const user = await upsertOAuthUser(oauthProfile);
     const token = signToken(user);
     return res.json({ token, user: serializeUser(user) });
   } catch (error) {

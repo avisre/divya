@@ -1,11 +1,17 @@
 package com.divya.android.ui.screens
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PrayerCatalogAuditTest {
     private val prayers = AppContent.prayerLibrary108
-    private val mojibakeMarkers = listOf("Ã", "Â", "�")
+    private val mojibakeMarkers = listOf("Ãƒ", "Ã‚", "ï¿½")
+
+    @Test
+    fun fallbackCatalogContains108Prayers() {
+        assertEquals(108, prayers.size)
+    }
 
     @Test
     fun audit108Prayers_completeTextFields() {

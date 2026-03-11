@@ -1,7 +1,7 @@
 package com.divya.android.ui.components
 
-import android.net.Uri
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.speech.tts.TextToSpeech
 import android.util.Patterns
 import android.widget.Toast
@@ -19,18 +19,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.collectAsState
 import com.divya.android.app.DivyaRuntime
 import com.divya.android.media.AudioCacheStore
 import com.divya.android.media.AudioSourceChoice
@@ -41,18 +42,16 @@ import com.divya.android.ui.theme.Clay
 import com.divya.android.ui.theme.DeepBrown
 import com.divya.android.ui.theme.Ivory
 import com.divya.android.ui.theme.Saffron
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
 
 @Composable
 fun PrayerAudioGuideCard(
     prayerId: String?,
     title: String,
     audioUrl: String?,
-    audioSource: String?,
-    audioQualityLabel: String?,
     pronunciationTip: String?,
     transliteration: String,
     englishMeaning: String,
@@ -60,10 +59,13 @@ fun PrayerAudioGuideCard(
     audioVersion: Int? = null,
     requiredTierLabel: String? = null,
     entitled: Boolean = true,
+    autoPlayRequested: Boolean = false,
+    onAutoPlayConsumed: () -> Unit = {},
     onSubscribeAudioComingSoon: (() -> Unit)? = null,
     onPlaybackProgress: (Float) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val isCompactPhone = LocalConfiguration.current.screenWidthDp < 390
     val hostView = LocalView.current
     val scope = rememberCoroutineScope()
     val playerState by PrayerAudioPlayer.state.collectAsState()
@@ -71,9 +73,13 @@ fun PrayerAudioGuideCard(
     val safeAudioUrl = remember(audioUrl) {
         audioUrl?.trim()?.takeIf { candidate ->
             candidate.isNotBlank() &&
-                (candidate.startsWith("raw://") ||
-                    (candidate.startsWith("http://") || candidate.startsWith("https://")) &&
-                    Patterns.WEB_URL.matcher(candidate).matches())
+                (
+                    candidate.startsWith("raw://") ||
+                        (
+                            (candidate.startsWith("http://") || candidate.startsWith("https://")) &&
+                                Patterns.WEB_URL.matcher(candidate).matches()
+                            )
+                    )
         }
     }
 
@@ -129,7 +135,15 @@ fun PrayerAudioGuideCard(
         )
     }
 
-    val sourceUri = remember(safeAudioUrl, isCached, bundledAudioAvailable, bundledResourceId, remoteAudioAvailable, cacheKey, sourceChoice) {
+    val sourceUri = remember(
+        safeAudioUrl,
+        isCached,
+        bundledAudioAvailable,
+        bundledResourceId,
+        remoteAudioAvailable,
+        cacheKey,
+        sourceChoice,
+    ) {
         when {
             bundledAudioAvailable && bundledResourceId != 0 ->
                 Uri.parse("android.resource://${context.packageName}/$bundledResourceId")
@@ -141,7 +155,7 @@ fun PrayerAudioGuideCard(
         }
     }
 
-    LaunchedEffect(sourceToken, sourceUri, prayerId, title) {
+    LaunchedEffect(sourceToken, sourceUri, prayerId, title, entitled, autoPlayRequested) {
         PrayerAudioPlayer.initialize(context)
         PrayerAudioPlayer.setSource(
             prayerId = prayerId,
@@ -149,6 +163,10 @@ fun PrayerAudioGuideCard(
             sourceToken = sourceToken,
             sourceUri = sourceUri,
         )
+        if (sourceUri != null && entitled && autoPlayRequested) {
+            PrayerAudioPlayer.play(reason = "selection_autoplay")
+            onAutoPlayConsumed()
+        }
     }
 
     val isCurrentSource = playerState.sourceToken == sourceToken
@@ -178,53 +196,24 @@ fun PrayerAudioGuideCard(
                 color = Saffron,
             )
             Text(
-                text = if (bundledAudioAvailable) {
-                    if (bundledResourceId == 0) {
-                        "Bundled audio was not found for this prayer. Falling back to guided recitation."
-                    } else {
-                        "Bundled chant audio is included for this prayer and plays offline."
-                    }
-                } else if (remoteAudioAvailable) {
-                    "Human chant audio is available for this prayer. Use offline save for travel or weak-network mornings."
-                } else {
-                    "Human chant audio is not available yet for this prayer. Guided transliteration and meaning are available now."
+                text = when {
+                    bundledAudioAvailable && bundledResourceId == 0 ->
+                        "Audio is not available right now. Guided recitation is available instead."
+                    bundledAudioAvailable ->
+                        "Audio is included for this prayer and can play offline."
+                    remoteAudioAvailable ->
+                        "Audio is available for this prayer. Save it offline for travel or weaker network conditions."
+                    else ->
+                        "Audio is not available yet for this prayer. Guided recitation and meaning are available now."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = DeepBrown,
             )
-            if (bundledAudioAvailable && !bundledResourceName.isNullOrBlank()) {
-                Text(
-                    text = "Source file: $bundledResourceName.mp3",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = DeepBrown.copy(alpha = 0.75f),
-                )
-            }
-            if (!audioSource.isNullOrBlank()) {
-                Text(
-                    text = audioSource,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = DeepBrown.copy(alpha = 0.7f),
-                )
-            }
-            if (!audioQualityLabel.isNullOrBlank()) {
-                Text(
-                    text = "Audio quality: $audioQualityLabel",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = DeepBrown.copy(alpha = 0.75f),
-                )
-            }
             if (!entitled) {
                 Text(
                     text = "Offline download and speed controls unlock in ${requiredTierLabel ?: "Bhakt"} tier.",
                     style = MaterialTheme.typography.bodySmall,
                     color = DeepBrown.copy(alpha = 0.8f),
-                )
-            }
-            if (!audioChecksumSha256.isNullOrBlank()) {
-                Text(
-                    text = "Integrity checksum: ${audioChecksumSha256.take(10)}...",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = DeepBrown.copy(alpha = 0.65f),
                 )
             }
             if (!pronunciationTip.isNullOrBlank()) {
@@ -236,118 +225,81 @@ fun PrayerAudioGuideCard(
             }
             if (!playerState.errorMessage.isNullOrBlank() && isCurrentSource) {
                 Text(
-                    text = playerState.errorMessage ?: "",
+                    text = playerState.errorMessage.orEmpty(),
                     style = MaterialTheme.typography.bodySmall,
                     color = DeepBrown.copy(alpha = 0.8f),
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                if (sourceUri != null) {
-                    Button(
-                        onClick = { PrayerAudioPlayer.togglePlayPause() },
-                        enabled = playerReady && entitled,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { contentDescription = if (isPlaying) "Pause chant audio" else "Play chant audio" },
-                    ) {
-                        Text(if (isPlaying) "Pause chant" else "Play chant")
-                    }
-                    OutlinedButton(
-                        onClick = { PrayerAudioPlayer.stop() },
-                        enabled = playerReady && entitled,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { contentDescription = "Stop chant audio" },
-                    ) {
-                        Text("Stop")
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            textToSpeech.speak(transliteration, TextToSpeech.QUEUE_FLUSH, null, "transliteration")
-                        },
-                        enabled = ready,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { contentDescription = "Play guided recitation" },
-                    ) {
-                        Text("Play recitation")
-                    }
-                    if (onSubscribeAudioComingSoon != null) {
-                        OutlinedButton(
-                            onClick = {
-                                onSubscribeAudioComingSoon()
-                                Toast.makeText(context, "Subscribed for audio release updates", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .semantics { contentDescription = "Notify me when licensed audio is available" },
-                        ) {
-                            Text("Notify me")
-                        }
-                    }
-                }
-            }
+
             if (sourceUri != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    listOf(0.5f, 1f, 1.5f, 2f).forEach { speed ->
-                        OutlinedButton(
-                            onClick = {
-                                PrayerAudioPlayer.setSpeed(speed)
-                                hostView.announceForAccessibility("Speed $speed x")
-                            },
-                            enabled = entitled,
-                            modifier = Modifier
-                                .weight(1f)
-                                .semantics { contentDescription = "Set playback speed to $speed x" },
-                        ) {
-                            Text("${speed}x")
-                        }
-                    }
-                }
+                PlayControls(
+                    isCompactPhone = isCompactPhone,
+                    playerReady = playerReady,
+                    entitled = entitled,
+                    isPlaying = isPlaying,
+                )
+            } else {
+                GuidedRecitationControls(
+                    isCompactPhone = isCompactPhone,
+                    ready = ready,
+                    transliteration = transliteration,
+                    textToSpeech = textToSpeech,
+                    onSubscribeAudioComingSoon = onSubscribeAudioComingSoon,
+                    context = context,
+                )
+            }
+
+            if (sourceUri != null) {
+                SpeedControls(
+                    isCompactPhone = isCompactPhone,
+                    entitled = entitled,
+                    onSpeedSelected = { speed ->
+                        PrayerAudioPlayer.setSpeed(speed)
+                        hostView.announceForAccessibility("Speed $speed x")
+                    },
+                )
                 Text(
                     text = "Playback speed: ${playbackSpeed}x",
                     style = MaterialTheme.typography.bodySmall,
                     color = DeepBrown.copy(alpha = 0.75f),
                 )
             }
+
             if (remoteAudioAvailable) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(
-                        onClick = {
-                            scope.launch {
-                                isDownloading = true
-                                runCatching {
-                                    withContext(Dispatchers.IO) {
-                                        AudioCacheStore.download(
-                                            context = context,
-                                            key = cacheKey,
-                                            url = safeAudioUrl!!,
-                                            expectedChecksumSha256 = audioChecksumSha256,
-                                        )
-                                    }
-                                }.onSuccess {
-                                    isCached = true
-                                }.onFailure {
-                                    textToSpeech.speak("Audio download failed.", TextToSpeech.QUEUE_FLUSH, null, "download_error")
-                                }.also {
-                                    isDownloading = false
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            isDownloading = true
+                            runCatching {
+                                withContext(Dispatchers.IO) {
+                                    AudioCacheStore.download(
+                                        context = context,
+                                        key = cacheKey,
+                                        url = safeAudioUrl!!,
+                                        expectedChecksumSha256 = audioChecksumSha256,
+                                    )
                                 }
+                            }.onSuccess {
+                                isCached = true
+                            }.onFailure {
+                                textToSpeech.speak("Audio download failed.", TextToSpeech.QUEUE_FLUSH, null, "download_error")
+                            }.also {
+                                isDownloading = false
                             }
+                        }
+                    },
+                    enabled = !isCached && !isDownloading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Save prayer audio for offline playback" },
+                ) {
+                    Text(
+                        when {
+                            isCached -> "Saved offline"
+                            isDownloading -> "Saving..."
+                            else -> "Save offline"
                         },
-                        enabled = !isCached && !isDownloading,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { contentDescription = "Save prayer audio for offline playback" },
-                    ) {
-                        Text(
-                            when {
-                                isCached -> "Saved offline"
-                                isDownloading -> "Saving..."
-                                else -> "Save offline"
-                            },
-                        )
-                    }
+                    )
                 }
                 if (!networkOnline && !isCached) {
                     Text(
@@ -357,6 +309,7 @@ fun PrayerAudioGuideCard(
                     )
                 }
             }
+
             if (sourceUri != null) {
                 OutlinedButton(
                     onClick = {
@@ -380,24 +333,207 @@ fun PrayerAudioGuideCard(
                     Text("Report audio issue")
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = {
-                        textToSpeech.speak(englishMeaning, TextToSpeech.QUEUE_FLUSH, null, "meaning")
-                    },
-                    enabled = ready,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Play meaning")
+
+            if (isCompactPhone) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            textToSpeech.speak(englishMeaning, TextToSpeech.QUEUE_FLUSH, null, "meaning")
+                        },
+                        enabled = ready,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Play meaning")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            textToSpeech.speak(transliteration, TextToSpeech.QUEUE_FLUSH, null, "guide")
+                        },
+                        enabled = ready,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Pronunciation guide")
+                    }
                 }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            textToSpeech.speak(englishMeaning, TextToSpeech.QUEUE_FLUSH, null, "meaning")
+                        },
+                        enabled = ready,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Play meaning")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            textToSpeech.speak(transliteration, TextToSpeech.QUEUE_FLUSH, null, "guide")
+                        },
+                        enabled = ready,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Pronunciation guide")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayControls(
+    isCompactPhone: Boolean,
+    playerReady: Boolean,
+    entitled: Boolean,
+    isPlaying: Boolean,
+) {
+    if (isCompactPhone) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = { PrayerAudioPlayer.togglePlayPause() },
+                enabled = playerReady && entitled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = if (isPlaying) "Pause chant audio" else "Play chant audio" },
+            ) {
+                Text(if (isPlaying) PAUSE_GLYPH else PLAY_GLYPH)
+            }
+            OutlinedButton(
+                onClick = { PrayerAudioPlayer.stop() },
+                enabled = playerReady && entitled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = "Stop chant audio" },
+            ) {
+                Text(STOP_GLYPH)
+            }
+        }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = { PrayerAudioPlayer.togglePlayPause() },
+                enabled = playerReady && entitled,
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = if (isPlaying) "Pause chant audio" else "Play chant audio" },
+            ) {
+                Text(if (isPlaying) PAUSE_GLYPH else PLAY_GLYPH)
+            }
+            OutlinedButton(
+                onClick = { PrayerAudioPlayer.stop() },
+                enabled = playerReady && entitled,
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = "Stop chant audio" },
+            ) {
+                Text(STOP_GLYPH)
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuidedRecitationControls(
+    isCompactPhone: Boolean,
+    ready: Boolean,
+    transliteration: String,
+    textToSpeech: TextToSpeech,
+    onSubscribeAudioComingSoon: (() -> Unit)?,
+    context: android.content.Context,
+) {
+    if (isCompactPhone) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = {
+                    textToSpeech.speak(transliteration, TextToSpeech.QUEUE_FLUSH, null, "transliteration")
+                },
+                enabled = ready,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = "Play guided recitation" },
+            ) {
+                Text("Play recitation")
+            }
+            if (onSubscribeAudioComingSoon != null) {
                 OutlinedButton(
                     onClick = {
-                        textToSpeech.speak(transliteration, TextToSpeech.QUEUE_FLUSH, null, "guide")
+                        onSubscribeAudioComingSoon()
+                        Toast.makeText(context, "Subscribed for audio release updates", Toast.LENGTH_SHORT).show()
                     },
-                    enabled = ready,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Notify me when licensed audio is available" },
                 ) {
-                    Text("Guide pronunciation")
+                    Text("Notify me")
+                }
+            }
+        }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = {
+                    textToSpeech.speak(transliteration, TextToSpeech.QUEUE_FLUSH, null, "transliteration")
+                },
+                enabled = ready,
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = "Play guided recitation" },
+            ) {
+                Text("Play recitation")
+            }
+            if (onSubscribeAudioComingSoon != null) {
+                OutlinedButton(
+                    onClick = {
+                        onSubscribeAudioComingSoon()
+                        Toast.makeText(context, "Subscribed for audio release updates", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = "Notify me when licensed audio is available" },
+                ) {
+                    Text("Notify me")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpeedControls(
+    isCompactPhone: Boolean,
+    entitled: Boolean,
+    onSpeedSelected: (Float) -> Unit,
+) {
+    if (isCompactPhone) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            listOf(listOf(0.5f, 1f), listOf(1.5f, 2f)).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    row.forEach { speed ->
+                        OutlinedButton(
+                            onClick = { onSpeedSelected(speed) },
+                            enabled = entitled,
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics { contentDescription = "Set playback speed to $speed x" },
+                        ) {
+                            Text("${speed}x")
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            listOf(0.5f, 1f, 1.5f, 2f).forEach { speed ->
+                OutlinedButton(
+                    onClick = { onSpeedSelected(speed) },
+                    enabled = entitled,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = "Set playback speed to $speed x" },
+                ) {
+                    Text("${speed}x")
                 }
             }
         }
@@ -412,3 +548,7 @@ private fun isNetworkOnline(context: android.content.Context): Boolean {
         caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }.getOrDefault(false)
 }
+
+private const val PLAY_GLYPH = "\u25B6"
+private const val PAUSE_GLYPH = "\u23F8"
+private const val STOP_GLYPH = "\u23F9"

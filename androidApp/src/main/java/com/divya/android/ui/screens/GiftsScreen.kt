@@ -1,14 +1,10 @@
 package com.divya.android.ui.screens
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.setValue
 import com.divya.android.ui.components.GiftConfirmationCard
 import com.divya.android.ui.components.GiftPujaSheet
 
@@ -59,11 +55,6 @@ fun GiftsScreen() {
                     pujaName = "Abhishekam",
                     onShare = {},
                 )
-            }
-        }
-        item {
-            Button(onClick = { giftFlowStarted = !giftFlowStarted }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (giftFlowStarted) "Reset gift flow" else "Start gift flow")
             }
         }
     }

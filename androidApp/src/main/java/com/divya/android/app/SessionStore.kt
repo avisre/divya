@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import java.util.TimeZone
 
 class SessionStore(context: Context) {
     private val prefs: SharedPreferences = runCatching {
@@ -36,7 +37,7 @@ class SessionStore(context: Context) {
                 email = prefs.getString(KEY_EMAIL, "").orEmpty(),
                 role = prefs.getString(KEY_ROLE, "user").orEmpty(),
                 country = prefs.getString(KEY_COUNTRY, "US").orEmpty(),
-                timezone = prefs.getString(KEY_TIMEZONE, "America/New_York").orEmpty(),
+                timezone = prefs.getString(KEY_TIMEZONE, "").orEmpty(),
                 currency = prefs.getString(KEY_CURRENCY, "USD").orEmpty(),
                 isGuest = prefs.getBoolean(KEY_IS_GUEST, false),
             ),
@@ -88,9 +89,9 @@ class SessionStore(context: Context) {
     }
 
     fun getDetectedTimezone(): String {
-        return prefs.getString(KEY_DETECTED_TIMEZONE, null)
-            ?: prefs.getString(KEY_TIMEZONE, "America/New_York")
-            ?: "America/New_York"
+        return prefs.getString(KEY_DETECTED_TIMEZONE, null).takeIf { !it.isNullOrBlank() }
+            ?: prefs.getString(KEY_TIMEZONE, null).takeIf { !it.isNullOrBlank() }
+            ?: TimeZone.getDefault().id.ifBlank { "UTC" }
     }
 
     fun saveCachedPanchang(json: String) {

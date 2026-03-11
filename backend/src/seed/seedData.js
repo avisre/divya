@@ -23,7 +23,39 @@ function priceVariants(usd) {
   };
 }
 
+const prayerAudioBySlug = {
+  "mahishasura-mardini": "mahishasura_mardini_stotram",
+  "navarna-mantra": "navarna_mantra",
+  "ya-devi-sarvabhuteshu": "ya_devi_sarvabhuteshu",
+  "kerala-bhagavathi-stuti": "kerala_bhagavathi_stuti",
+  "lalitha-sahasranama-108": "lalitha_sahasranama_108",
+  "gayatri-mantra": "gayatri_mantra",
+  "ganesh-aarti": "ganesh_aarti",
+  "hanuman-chalisa": "hanuman_chalisa",
+  "maha-mrityunjaya": "maha_mrityunjaya",
+  "lakshmi-aarti": "lakshmi_aarti",
+  "saraswati-vandana": "saraswati_vandana",
+  "shiva-panchakshara": "shiva_panchakshara",
+  "om-namah-shivaya": "om_namah_shivaya",
+  "durga-chalisa": "durga_chalisa",
+  "krishna-aarti": "krishna_aarti",
+  "surya-mantra": "surya_mantra",
+  "shanti-mantra": "shanti_mantra",
+  "vishnu-sahasranama-108": "vishnu_sahasranama_108",
+  "pratah-smaranam": "morning_prayer",
+  "nirvana-shatakam": "nirvana_shatakam"
+};
+
 function prayer(titleEn, slug, deity, overrides = {}) {
+  const english = overrides.english || `Devotional prayer text for ${titleEn}.`;
+  const transliteration =
+    overrides.transliteration ||
+    overrides.iast ||
+    `Om ${titleEn}`;
+  const meaning =
+    overrides.meaning ||
+    english;
+
   return {
     deity,
     title: {
@@ -35,16 +67,16 @@ function prayer(titleEn, slug, deity, overrides = {}) {
     type: overrides.type || "prayer",
     difficulty: overrides.difficulty || "beginner",
     durationMinutes: overrides.durationMinutes || 5,
-    transliteration: overrides.transliteration,
+    transliteration,
     content: {
       devanagari: overrides.devanagari,
       malayalam: overrides.malayalam,
-      english: overrides.english
+      english
     },
     iast: overrides.iast,
     beginnerNote: overrides.beginnerNote,
-    meaning: overrides.meaning,
-    audioUrl: overrides.audioUrl || null,
+    meaning,
+    audioUrl: overrides.audioUrl ?? (prayerAudioBySlug[slug] ? `raw://${prayerAudioBySlug[slug]}` : null),
     recommendedRepetitions: overrides.recommendedRepetitions || [1, 3, 11, 21, 108],
     isPremium: overrides.isPremium || false,
     isFeatured: overrides.isFeatured || false,
@@ -54,9 +86,16 @@ function prayer(titleEn, slug, deity, overrides = {}) {
 }
 
 function puja(nameEn, nameMl, type, usd, deity, temple, order, overrides = {}) {
+  const slug =
+    overrides.slug ||
+    String(nameEn)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   return {
     temple,
     deity,
+    slug,
     name: {
       en: nameEn,
       ml: nameMl,
@@ -260,7 +299,6 @@ async function seed() {
     prayer("Gayatri Mantra", "gayatri-mantra", bySlug["saraswati"]._id, {
       type: "mantra",
       durationMinutes: 3,
-      audioUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Gayatri%20mantra.ogg",
       transliteration: "Om bhur bhuvah svah, tat savitur varenyam...",
       devanagari: "ॐ भूर्भुवः स्वः । तत्सवितुर्वरेण्यं...",
       english: "We meditate on the adorable brilliance of Savitr; may that radiance inspire our minds.",
@@ -286,7 +324,6 @@ async function seed() {
     prayer("Maha Mrityunjaya Mantra", "maha-mrityunjaya", bySlug["shiva"]._id, {
       type: "mantra",
       durationMinutes: 4,
-      audioUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Mrityunjaya.ogg",
       transliteration: "Om tryambakam yajamahe sugandhim pushtivardhanam...",
       devanagari: "ॐ त्र्यम्बकं यजामहे सुगन्धिं पुष्टिवर्धनम्...",
       english: "We worship the three-eyed Lord, fragrant and nourishing, who liberates us from bondage.",

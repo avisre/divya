@@ -33,7 +33,17 @@ services:
         value: 30d
       - key: PUBLIC_API_BASE_URL
         sync: false
+      - key: WEB_APP_URL
+        sync: false
       - key: ADMIN_DASHBOARD_URL
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_ANDROID_WEB_CLIENT_ID
         sync: false
       - key: SENDGRID_API_KEY
         sync: false
@@ -55,19 +65,18 @@ services:
         sync: false
   - type: web
     name: divya-web
-    runtime: static
+    runtime: node
     rootDir: web
     buildCommand: npm ci && npm run build
-    staticPublishPath: dist
+    startCommand: npm run start
+    healthCheckPath: /
     pullRequestPreviewsEnabled: false
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
     envVars:
       - key: NODE_VERSION
         value: "20"
-      - key: VITE_API_BASE_URL
-        value: https://divya-twug.onrender.com/api
-      - key: VITE_SOCKET_BASE_URL
-        value: https://divya-twug.onrender.com
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: NEXT_PUBLIC_BACKEND_ORIGIN
+        sync: false
+      - key: BACKEND_API_BASE_URL
+        sync: false

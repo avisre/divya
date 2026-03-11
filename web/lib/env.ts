@@ -5,7 +5,7 @@ export const SITE_URL =
 
 export const BACKEND_API_BASE_URL =
   process.env.BACKEND_API_BASE_URL?.replace(/\/+$/, "") ||
-  `${(process.env.NEXT_PUBLIC_BACKEND_ORIGIN || fallbackBackendOrigin).replace(/\/+$/, "")}/api`;
+  `${(process.env.NEXT_PUBLIC_BACKEND_ORIGIN || process.env.NEXT_PUBLIC_SITE_URL || fallbackBackendOrigin).replace(/\/+$/, "")}/api`;
 
 export const BACKEND_ORIGIN = BACKEND_API_BASE_URL.replace(/\/api$/, "");
 

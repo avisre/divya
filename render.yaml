@@ -1,13 +1,14 @@
 services:
   - type: web
-    name: divya-backend
+    name: divya-app
     runtime: node
-    rootDir: backend
+    rootDir: .
     plan: starter
     autoDeploy: false
-    buildCommand: npm ci
-    startCommand: npm run start
+    buildCommand: cd backend && npm ci && cd ../web && npm ci && npm run build
+    startCommand: cd web && npm run start
     healthCheckPath: /health/ready
+    pullRequestPreviewsEnabled: false
     envVars:
       - key: NODE_VERSION
         value: "20"
@@ -15,14 +16,12 @@ services:
         value: production
       - key: PORT
         value: "10000"
-      - key: DISABLE_PAYMENTS
-        value: "true"
-      - key: ENABLE_SIMULATOR_API
-        value: "false"
-      - key: ENABLE_OBSERVABILITY_INGEST
-        value: "true"
-      - key: TRUST_PROXY
-        value: "true"
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: NEXT_PUBLIC_BACKEND_ORIGIN
+        sync: false
+      - key: BACKEND_API_BASE_URL
+        sync: false
       - key: CORS_ORIGINS
         sync: false
       - key: MONGODB_URI
@@ -37,6 +36,14 @@ services:
         sync: false
       - key: ADMIN_DASHBOARD_URL
         sync: false
+      - key: DISABLE_PAYMENTS
+        value: "true"
+      - key: ENABLE_SIMULATOR_API
+        value: "false"
+      - key: ENABLE_OBSERVABILITY_INGEST
+        value: "true"
+      - key: TRUST_PROXY
+        value: "true"
       - key: GOOGLE_OAUTH_CLIENT_ID
         sync: false
       - key: GOOGLE_OAUTH_CLIENT_SECRET
@@ -62,21 +69,4 @@ services:
       - key: CLOUDINARY_API_SECRET
         sync: false
       - key: MIXPANEL_TOKEN
-        sync: false
-  - type: web
-    name: divya-web
-    runtime: node
-    rootDir: web
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start
-    healthCheckPath: /
-    pullRequestPreviewsEnabled: false
-    envVars:
-      - key: NODE_VERSION
-        value: "20"
-      - key: NEXT_PUBLIC_SITE_URL
-        sync: false
-      - key: NEXT_PUBLIC_BACKEND_ORIGIN
-        sync: false
-      - key: BACKEND_API_BASE_URL
         sync: false

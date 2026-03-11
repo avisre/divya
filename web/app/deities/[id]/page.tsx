@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { Button } from "@/components/ui/Button";
-import { getDeity, getLearningPath } from "@/lib/data";
-import { getOptionalSession } from "@/lib/session";
+import { Hero } from "../../../components/content/Hero";
+import { Section } from "../../../components/content/Section";
+import { Button } from "../../../components/ui/Button";
+import { getDeity, getLearningPath } from "../../../lib/data";
+import { getOptionalSession } from "../../../lib/session";
 
 export default async function DeityDetailPage({
   params

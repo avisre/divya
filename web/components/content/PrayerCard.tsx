@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/Button";
-import type { Prayer } from "@/lib/types";
+import { Button } from "../ui/Button";
+import type { Prayer } from "../../lib/types";
 
 export function PrayerCard({ prayer }: { prayer: Prayer }) {
   return (

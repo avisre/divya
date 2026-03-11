@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { fetchBackend } from "@/lib/backend";
-import { setSessionCookie } from "@/lib/session";
-import type { UserSession } from "@/lib/types";
+import { fetchBackend } from "../../../../../lib/backend";
+import { setSessionCookie } from "../../../../../lib/session";
+import type { UserSession } from "../../../../../lib/types";
 
 export async function POST(request: Request) {
   try {

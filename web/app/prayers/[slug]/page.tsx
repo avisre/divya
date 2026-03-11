@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { PrayerDetailClient } from "@/components/forms/PrayerDetailClient";
-import { getPrayer, getPrayerAudio } from "@/lib/data";
-import { getOptionalSession } from "@/lib/session";
+import { Hero } from "../../../components/content/Hero";
+import { Section } from "../../../components/content/Section";
+import { PrayerDetailClient } from "../../../components/forms/PrayerDetailClient";
+import { getPrayer, getPrayerAudio } from "../../../lib/data";
+import { getOptionalSession } from "../../../lib/session";
 
 export default async function PrayerDetailPage({
   params

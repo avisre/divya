@@ -1,7 +1,7 @@
-import { Hero } from "@/components/content/Hero";
-import { PujaCard } from "@/components/content/PujaCard";
-import { Section } from "@/components/content/Section";
-import { getPujas } from "@/lib/data";
+import { Hero } from "../../components/content/Hero";
+import { PujaCard } from "../../components/content/PujaCard";
+import { Section } from "../../components/content/Section";
+import { getPujas } from "../../lib/data";
 
 export default async function PujasPage() {
   const pujas = await getPujas("USD").catch(() => []);

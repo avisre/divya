@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { LoginForm } from "@/components/auth/LoginForm";
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { getOptionalSession } from "@/lib/session";
+import { LoginForm } from "../../components/auth/LoginForm";
+import { Hero } from "../../components/content/Hero";
+import { Section } from "../../components/content/Section";
+import { getOptionalSession } from "../../lib/session";
 
 export default async function LoginPage() {
   const session = await getOptionalSession();

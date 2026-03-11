@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { RegisterForm } from "@/components/auth/RegisterForm";
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { getOptionalSession } from "@/lib/session";
+import { RegisterForm } from "../../components/auth/RegisterForm";
+import { Hero } from "../../components/content/Hero";
+import { Section } from "../../components/content/Section";
+import { getOptionalSession } from "../../lib/session";
 
 export default async function RegisterPage() {
   const session = await getOptionalSession();

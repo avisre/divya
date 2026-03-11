@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import { BACKEND_ORIGIN } from "@/lib/env";
-import { sendJson } from "@/lib/client-api";
-import { Button } from "@/components/ui/Button";
-import { StatusStrip } from "@/components/ui/StatusStrip";
-import type { SharedPrayerSession, UserSession } from "@/lib/types";
+import { BACKEND_ORIGIN } from "../../lib/env";
+import { sendJson } from "../../lib/client-api";
+import { Button } from "../ui/Button";
+import { StatusStrip } from "../ui/StatusStrip";
+import type { SharedPrayerSession, UserSession } from "../../lib/types";
 
 let socket: Socket | null = null;
 

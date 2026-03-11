@@ -1,9 +1,9 @@
-import { Hero } from "@/components/content/Hero";
-import { MetricGrid } from "@/components/content/MetricGrid";
-import { PujaCard } from "@/components/content/PujaCard";
-import { Section } from "@/components/content/Section";
-import { Button } from "@/components/ui/Button";
-import { getPujas, getTemple } from "@/lib/data";
+import { Hero } from "../../components/content/Hero";
+import { MetricGrid } from "../../components/content/MetricGrid";
+import { PujaCard } from "../../components/content/PujaCard";
+import { Section } from "../../components/content/Section";
+import { Button } from "../../components/ui/Button";
+import { getPujas, getTemple } from "../../lib/data";
 
 export default async function TemplePage() {
   const [temple, pujas] = await Promise.all([

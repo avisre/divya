@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { SiteFooter } from "@/components/shell/SiteFooter";
-import { SiteHeader } from "@/components/shell/SiteHeader";
-import type { UserSession } from "@/lib/types";
+import { SiteFooter } from "./SiteFooter";
+import { SiteHeader } from "./SiteHeader";
+import type { UserSession } from "../../lib/types";
 
 export function SiteShell({
   user,

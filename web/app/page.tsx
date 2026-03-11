@@ -1,11 +1,11 @@
-import { Hero } from "@/components/content/Hero";
-import { MetricGrid } from "@/components/content/MetricGrid";
-import { PanchangSummary } from "@/components/content/PanchangSummary";
-import { PrayerCard } from "@/components/content/PrayerCard";
-import { PujaCard } from "@/components/content/PujaCard";
-import { Section } from "@/components/content/Section";
-import { Button } from "@/components/ui/Button";
-import { getFeaturedPrayers, getPanchangToday, getPujas, getTemple } from "@/lib/data";
+import { Hero } from "../components/content/Hero";
+import { MetricGrid } from "../components/content/MetricGrid";
+import { PanchangSummary } from "../components/content/PanchangSummary";
+import { PrayerCard } from "../components/content/PrayerCard";
+import { PujaCard } from "../components/content/PujaCard";
+import { Section } from "../components/content/Section";
+import { Button } from "../components/ui/Button";
+import { getFeaturedPrayers, getPanchangToday, getPujas, getTemple } from "../lib/data";
 
 export default async function LandingPage() {
   const [featuredPrayers, temple, panchang, pujas] = await Promise.all([

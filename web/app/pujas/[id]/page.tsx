@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { BookingPanel } from "@/components/forms/BookingPanel";
-import { Hero } from "@/components/content/Hero";
-import { MetricGrid } from "@/components/content/MetricGrid";
-import { Section } from "@/components/content/Section";
-import { formatPrice } from "@/lib/format";
-import { getPuja } from "@/lib/data";
-import { getOptionalSession } from "@/lib/session";
+import { BookingPanel } from "../../../components/forms/BookingPanel";
+import { Hero } from "../../../components/content/Hero";
+import { MetricGrid } from "../../../components/content/MetricGrid";
+import { Section } from "../../../components/content/Section";
+import { formatPrice } from "../../../lib/format";
+import { getPuja } from "../../../lib/data";
+import { getOptionalSession } from "../../../lib/session";
 
 export default async function PujaDetailPage({
   params

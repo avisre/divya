@@ -1,10 +1,10 @@
-import { Hero } from "@/components/content/Hero";
-import { MetricGrid } from "@/components/content/MetricGrid";
-import { Section } from "@/components/content/Section";
-import { Button } from "@/components/ui/Button";
-import { formatPrice } from "@/lib/format";
-import { getBookings, getGiftBookingsReceived, getGiftBookingsSent } from "@/lib/data";
-import { requireSession } from "@/lib/session";
+import { Hero } from "../../components/content/Hero";
+import { MetricGrid } from "../../components/content/MetricGrid";
+import { Section } from "../../components/content/Section";
+import { Button } from "../../components/ui/Button";
+import { formatPrice } from "../../lib/format";
+import { getBookings, getGiftBookingsReceived, getGiftBookingsSent } from "../../lib/data";
+import { requireSession } from "../../lib/session";
 
 export default async function BookingsPage() {
   const session = await requireSession("/bookings");

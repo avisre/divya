@@ -1,8 +1,8 @@
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { Button } from "@/components/ui/Button";
-import { getBookingVideo } from "@/lib/data";
-import { requireSession } from "@/lib/session";
+import { Hero } from "../../../components/content/Hero";
+import { Section } from "../../../components/content/Section";
+import { Button } from "../../../components/ui/Button";
+import { getBookingVideo } from "../../../lib/data";
+import { requireSession } from "../../../lib/session";
 
 export default async function VideoPage({
   params

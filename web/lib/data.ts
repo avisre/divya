@@ -1,4 +1,4 @@
-import { fetchBackend } from "@/lib/backend";
+import { fetchBackend } from "./backend";
 import type {
   AuthResponse,
   Deity,
@@ -14,7 +14,7 @@ import type {
   Stats,
   Temple,
   UserSession
-} from "@/lib/types";
+} from "./types";
 
 export async function getTemple() {
   return fetchBackend<Temple>("/temple");

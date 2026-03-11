@@ -1,6 +1,6 @@
-import { Hero } from "@/components/content/Hero";
-import { Section } from "@/components/content/Section";
-import { SupportForm } from "@/components/forms/SupportForm";
+import { Hero } from "../../components/content/Hero";
+import { Section } from "../../components/content/Section";
+import { SupportForm } from "../../components/forms/SupportForm";
 
 export default function ContactUsPage() {
   return (

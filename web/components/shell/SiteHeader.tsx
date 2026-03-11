@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { LogoutButton } from "@/components/auth/LogoutButton";
-import { PrimaryNav } from "@/components/shell/PrimaryNav";
-import type { UserSession } from "@/lib/types";
+import { LogoutButton } from "../auth/LogoutButton";
+import { PrimaryNav } from "./PrimaryNav";
+import type { UserSession } from "../../lib/types";
 
 const publicLinks = [
   { href: "/prayers", label: "Prayers" },

@@ -1,4 +1,4 @@
-import type { Panchang } from "@/lib/types";
+import type { Panchang } from "../../lib/types";
 
 export function PanchangSummary({ panchang }: { panchang: Panchang }) {
   return (

@@ -1,7 +1,7 @@
-import { Hero } from "@/components/content/Hero";
-import { PrayerCard } from "@/components/content/PrayerCard";
-import { Section } from "@/components/content/Section";
-import { getPrayers } from "@/lib/data";
+import { Hero } from "../../components/content/Hero";
+import { PrayerCard } from "../../components/content/PrayerCard";
+import { Section } from "../../components/content/Section";
+import { getPrayers } from "../../lib/data";
 
 export default async function PrayersPage() {
   const prayers = await getPrayers("?limit=108").catch(() => []);

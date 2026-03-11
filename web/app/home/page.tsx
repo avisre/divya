@@ -1,12 +1,12 @@
-import { Hero } from "@/components/content/Hero";
-import { MetricGrid } from "@/components/content/MetricGrid";
-import { PanchangSummary } from "@/components/content/PanchangSummary";
-import { PrayerCard } from "@/components/content/PrayerCard";
-import { PujaCard } from "@/components/content/PujaCard";
-import { Section } from "@/components/content/Section";
-import { Button } from "@/components/ui/Button";
-import { getBookings, getDailyRecommendation, getFeaturedPrayers, getPanchangToday, getPujas } from "@/lib/data";
-import { requireSession } from "@/lib/session";
+import { Hero } from "../../components/content/Hero";
+import { MetricGrid } from "../../components/content/MetricGrid";
+import { PanchangSummary } from "../../components/content/PanchangSummary";
+import { PrayerCard } from "../../components/content/PrayerCard";
+import { PujaCard } from "../../components/content/PujaCard";
+import { Section } from "../../components/content/Section";
+import { Button } from "../../components/ui/Button";
+import { getBookings, getDailyRecommendation, getFeaturedPrayers, getPanchangToday, getPujas } from "../../lib/data";
+import { requireSession } from "../../lib/session";
 
 export default async function HomePage() {
   const session = await requireSession("/home");

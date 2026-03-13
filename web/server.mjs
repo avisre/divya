@@ -32,7 +32,7 @@ const nextHandler = nextApp.getRequestHandler();
 async function startUnifiedServer() {
   await nextApp.prepare();
   const { app, httpServer, io } = createBackendHttpServer(config);
-  const runtime = await initializeBackendRuntime(config);
+  let runtime = null;
 
   app.all("*", (req, res) => nextHandler(req, res));
 
@@ -57,11 +57,29 @@ async function startUnifiedServer() {
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-  httpServer.listen(port, () => {
-    console.log(`Divya unified app listening on port ${port}`);
-    console.log(`Environment: ${config.nodeEnv}`);
-    console.log(`Serving web and API from one process`);
+  await new Promise((resolve, reject) => {
+    httpServer.once("error", reject);
+    httpServer.listen(port, () => {
+      httpServer.off("error", reject);
+      console.log(`Divya unified app listening on port ${port}`);
+      console.log(`Environment: ${config.nodeEnv}`);
+      console.log(`Serving web and API from one process`);
+      resolve();
+    });
   });
+
+  try {
+    runtime = await initializeBackendRuntime(config);
+    console.log("Backend runtime initialized");
+  } catch (error) {
+    console.error("Failed to initialize backend runtime", error);
+    await stopBackendRuntime({
+      io,
+      httpServer,
+      ...runtime
+    });
+    process.exit(1);
+  }
 }
 
 startUnifiedServer().catch((error) => {

@@ -7,7 +7,7 @@ services:
     autoDeploy: false
     buildCommand: cd backend && npm ci && cd ../web && npm ci && npm run build
     startCommand: cd web && npm run start
-    healthCheckPath: /health/ready
+    healthCheckPath: /health/live
     pullRequestPreviewsEnabled: false
     envVars:
       - key: NODE_VERSION

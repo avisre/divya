@@ -6,20 +6,14 @@ import type { UserSession } from "./types";
 
 export const SESSION_COOKIE = "divya_web_session";
 
-export async function setSessionCookie(token: string) {
-  const store = await cookies();
-  store.set(SESSION_COOKIE, token, {
+export function getSessionCookieOptions() {
+  return {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     secure: IS_PRODUCTION,
     path: "/",
     maxAge: 60 * 60 * 24 * 30
-  });
-}
-
-export async function clearSessionCookie() {
-  const store = await cookies();
-  store.delete(SESSION_COOKIE);
+  };
 }
 
 export async function getAuthToken() {

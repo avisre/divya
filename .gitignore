@@ -9,7 +9,9 @@ backend/.env
 admin/node_modules/
 admin/dist/
 web/node_modules/
+web/.next/
 web/dist/
+web/legacy-vite/
 web/*.js
 web/*.d.ts
 web/*.tsbuildinfo

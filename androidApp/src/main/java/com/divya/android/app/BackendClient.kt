@@ -46,6 +46,16 @@ class BackendClient(private val context: Context) {
         )
     }
 
+    suspend fun loginWithGoogleIdToken(idToken: String): SessionState = withContext(Dispatchers.IO) {
+        parseSession(
+            request(
+                method = "POST",
+                path = "/auth/google/mobile",
+                payload = jsonOf("idToken" to idToken),
+            ),
+        )
+    }
+
     suspend fun register(
         name: String,
         email: String,
@@ -545,13 +555,17 @@ class BackendClient(private val context: Context) {
     }
 
     private fun parseUser(user: JSONObject): SessionUser {
+        val timezone = user.opt("timezone")
+            ?.takeUnless { it == JSONObject.NULL }
+            ?.toString()
+            .orEmpty()
         return SessionUser(
             id = user.optString("id", user.optString("_id")),
             name = user.optString("name"),
             email = user.optString("email"),
             role = user.optString("role", "user"),
             country = user.optString("country", "US"),
-            timezone = user.optString("timezone", "America/New_York"),
+            timezone = timezone,
             currency = user.optString("currency", "USD"),
             isGuest = user.optBoolean("isGuest", false),
         )
@@ -626,16 +640,23 @@ class BackendClient(private val context: Context) {
     private fun parseBookingSummary(item: JSONObject): BookingSummary {
         val puja = item.optJSONObject("puja")
         val temple = item.optJSONObject("temple")
+        val status = item.optString("status")
         return BookingSummary(
             id = item.optString("_id", item.optString("id")),
             bookingReference = item.optString("bookingReference"),
-            status = item.optString("status"),
+            status = status,
+            videoStatus = when (status) {
+                "in_progress" -> "performed"
+                "completed" -> "processing"
+                "video_ready" -> "video_ready"
+                else -> "booked"
+            },
             waitlistPosition = item.optInt("waitlistPosition").takeIf { it > 0 },
             paymentStatus = item.optString("paymentStatus"),
             pujaName = puja?.optJSONObject("name")?.optString("en").orEmpty(),
             templeName = temple?.optJSONObject("name")?.optString("en").orEmpty(),
             prayerIntention = item.optString("prayerIntention"),
-            hasVideo = item.optString("status") == "video_ready" || !item.optString("videoStorageId").isNullOrBlank(),
+            hasVideo = status == "video_ready" || !item.optString("videoStorageId").isNullOrBlank(),
         )
     }
 

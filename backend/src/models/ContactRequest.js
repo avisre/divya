@@ -19,8 +19,8 @@ const contactRequestSchema = new mongoose.Schema(
     timezone: { type: String, trim: true, maxlength: 80 },
     category: {
       type: String,
-      enum: ["booking_help", "gothram_help", "technical_issue", "feature_request", "other"],
-      default: "other"
+      enum: ["booking_help", "gothram_help", "technical_issue", "video_help", "general"],
+      default: "general"
     },
     subject: { type: String, required: true, trim: true, minlength: 5, maxlength: 120 },
     message: { type: String, required: true, trim: true, minlength: 20, maxlength: 2000 },

@@ -3,12 +3,16 @@ package com.divya.android.ui.screens
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,7 +34,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -40,12 +46,14 @@ import com.divya.android.app.BookingCreateRequest
 import com.divya.android.app.DivyaRuntime
 import com.divya.android.app.GothramGuidanceInput
 import com.divya.android.navigation.DivyaRoutes
+import com.divya.android.ui.formatPrice
 import com.divya.android.ui.components.ConversionReasonCard
 import com.divya.android.ui.components.NakshatraPickerSheet
 import com.divya.android.ui.components.PujaShareCard
 import com.divya.android.ui.components.TraditionNotesCard
 import com.divya.android.ui.theme.AlertMarigold
 import com.divya.android.ui.theme.DeepBrown
+import com.divya.android.ui.theme.Ivory
 import com.divya.android.ui.theme.SuccessLeaf
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -56,6 +64,7 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     val haptic = LocalHapticFeedback.current
+    val isCompactPhone = LocalConfiguration.current.screenWidthDp < 380
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -91,6 +100,18 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
             actionLabel = if (isError) "error" else "success",
         )
     }
+
+    val dateRangeOptions = listOf(
+        "First available",
+        "Mar 10 - Mar 25",
+        "Mar 26 - Apr 10",
+        "Apr 10+",
+    )
+    val intentionSuggestions = listOf(
+        "Peace and prosperity for my family",
+        "Health and recovery for [name]",
+        "Gratitude and guidance",
+    )
 
     fun submitBooking() {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -149,41 +170,69 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
         ScreenScaffold(
             eyebrow = "Waitlist reservation",
             title = "Prepare your puja request",
-            subtitle = "Share the devotee details the temple needs, then review once and submit with confidence.",
-            badge = "Temple reservation",
+            subtitle = "Share the devotee details the temple needs, review them once, and submit your request with confidence.",
+            badge = "Temple request",
+            heroVariant = HeroCardVariant.PUJA,
             heroStats = listOf(
-                HeroStat("USD 51", "Presented price"),
-                HeroStat("Temple-performed", "Licensed Tantri"),
-                HeroStat("4-6 weeks", "Expected wait"),
+                HeroStat(formatPrice(51.0, "USD"), "Presented price"),
+                HeroStat("Temple service", "Performed in your name"),
+                HeroStat("4-6 weeks", "Typical wait"),
                 HeroStat("Private video", "After completion"),
             ),
             heroContent = {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            wizardDevoteeName = devoteeName
-                            showGothramWizard = true
-                            gothramWizardStep = 1
-                            wizardBestEffortConfirmed = false
-                            DivyaRuntime.trackEvent("gothram_guidance_opened")
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { contentDescription = "Find my gothram button" },
-                    ) {
-                        Text("Find my gothram")
+                if (isCompactPhone) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        PrimaryActionButton(
+                            text = "Find my gothram",
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                wizardDevoteeName = devoteeName
+                                showGothramWizard = true
+                                gothramWizardStep = 1
+                                wizardBestEffortConfirmed = false
+                                DivyaRuntime.trackEvent("gothram_guidance_opened")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { contentDescription = "Find my gothram button" },
+                        )
+                        SecondaryActionButton(
+                            text = "How tracking works",
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onOpen(DivyaRoutes.myPujas.route)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { contentDescription = "How tracking works button" },
+                        )
                     }
-                    Button(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onOpen(DivyaRoutes.myPujas.route)
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { contentDescription = "How tracking works button" },
-                    ) {
-                        Text("How tracking works")
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        PrimaryActionButton(
+                            text = "Find my gothram",
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                wizardDevoteeName = devoteeName
+                                showGothramWizard = true
+                                gothramWizardStep = 1
+                                wizardBestEffortConfirmed = false
+                                DivyaRuntime.trackEvent("gothram_guidance_opened")
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics { contentDescription = "Find my gothram button" },
+                        )
+                        SecondaryActionButton(
+                            text = "How tracking works",
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onOpen(DivyaRoutes.myPujas.route)
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics { contentDescription = "How tracking works button" },
+                        )
                     }
                 }
             },
@@ -194,7 +243,7 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
                     body = AppContent.waitlistReassurance.joinToString(" "),
                 )
             }
-            item { DividerLabel("Devotee details") }
+            SectionHeader("Devotee details")
             if (detailsSaved) {
                 item {
                     StatusStrip(
@@ -260,46 +309,101 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
                             }
                         },
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        Button(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                wizardDevoteeName = devoteeName
-                                showGothramWizard = true
-                                gothramWizardStep = 1
-                                wizardBestEffortConfirmed = false
-                                DivyaRuntime.trackEvent("gothram_guidance_opened")
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Find my gothram")
+                    if (isCompactPhone) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    wizardDevoteeName = devoteeName
+                                    showGothramWizard = true
+                                    gothramWizardStep = 1
+                                    wizardBestEffortConfirmed = false
+                                    DivyaRuntime.trackEvent("gothram_guidance_opened")
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Find my gothram")
+                            }
+                            Button(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    gothram = "Unknown"
+                                    gothramConfidence = "none"
+                                    gothramSource = "user_unknown"
+                                    gothramGuidanceText = "Unknown is acceptable. You can update it later after checking with family."
+                                    submitMessage = "Unknown gothram is acceptable for this request."
+                                    scope.launch { showFeedback("Proceeding with Unknown gothram.", false) }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("I don't know")
+                            }
                         }
-                        Button(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                gothram = "Unknown"
-                                gothramConfidence = "none"
-                                gothramSource = "user_unknown"
-                                gothramGuidanceText = "No issue - booking can continue with Unknown gothram."
-                                submitMessage = "No issue - booking can continue with Unknown gothram."
-                                scope.launch { showFeedback("Proceeding with Unknown gothram.", false) }
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("I don't know")
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    wizardDevoteeName = devoteeName
+                                    showGothramWizard = true
+                                    gothramWizardStep = 1
+                                    wizardBestEffortConfirmed = false
+                                    DivyaRuntime.trackEvent("gothram_guidance_opened")
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text("Find my gothram")
+                            }
+                            Button(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    gothram = "Unknown"
+                                    gothramConfidence = "none"
+                                    gothramSource = "user_unknown"
+                                    gothramGuidanceText = "Unknown is acceptable. You can update it later after checking with family."
+                                    submitMessage = "Unknown gothram is acceptable for this request."
+                                    scope.launch { showFeedback("Proceeding with Unknown gothram.", false) }
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text("I don't know")
+                            }
                         }
                     }
-                    SelectableTagRow(
-                        options = listOf("First available", "Mar 10 - Mar 25", "Mar 26 - Apr 8"),
-                        selected = selectedRange,
-                        onSelect = { selectedRange = it },
-                    )
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        SelectableTagRow(
+                            options = dateRangeOptions,
+                            selected = selectedRange,
+                            onSelect = { selectedRange = it },
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .fillMaxHeight()
+                                .width(36.dp)
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(Ivory.copy(alpha = 0f), Ivory),
+                                    ),
+                                ),
+                        )
+                    }
                 }
             }
             item { NakshatraPickerSheet() }
-            item { DividerLabel("Prayer intention") }
+            SectionHeader("Prayer intention")
             item {
                 PanelCard(title = "Prayer intention", subtitle = "Minimum 10 characters, maximum 500.") {
+                    SelectableTagRow(
+                        options = intentionSuggestions,
+                        selected = intention.takeIf { it in intentionSuggestions } ?: "",
+                        onSelect = { intention = it },
+                    )
+                    Text(
+                        text = "Most devotees write 2-3 sentences. Be specific about your family name and intention.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DeepBrown.copy(alpha = 0.56f),
+                    )
                     OutlinedTextField(
                         value = intention,
                         onValueChange = { intention = it.take(500) },
@@ -307,7 +411,15 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
                         label = { Text("What would you like to pray for?") },
                         minLines = 4,
                     )
-                    InfoRow(label = "Character count", value = "${intention.length} / 500")
+                    Text(
+                        text = "${intention.length} / 500",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = when {
+                            intention.length > 480 -> MaterialTheme.colorScheme.error
+                            intention.length > 400 -> AlertMarigold
+                            else -> DeepBrown.copy(alpha = 0.65f)
+                        },
+                    )
                     AccentNote(
                         title = "Moderation",
                         body = "Intentions are screened quietly for abusive language before they are forwarded to the temple.",
@@ -317,15 +429,15 @@ fun WaitlistJoinScreen(onOpen: (String) -> Unit) {
             item {
                 ConversionReasonCard(
                     title = "What happens after this",
-                    subtitle = "Completion improves when the user already knows the ritual journey.",
+                    subtitle = "You will receive updates as your request moves from waitlist to completion.",
                     bullets = AppContent.bookingStages,
                     tags = listOf("Waitlist", "Status updates", "Video ready"),
                 )
             }
-            item { DividerLabel("Review and submit") }
+            SectionHeader("Review and submit")
             item {
                 PanelCard(title = "Request summary") {
-                    InfoRow(label = "Presented amount", value = "USD 51")
+                    InfoRow(label = "Presented amount", value = formatPrice(51.0, "USD"))
                     InfoRow(label = "Temple", value = AppContent.temple.name.en)
                     InfoRow(label = "Preferred window", value = selectedRange)
                     InfoRow(

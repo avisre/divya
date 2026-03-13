@@ -138,7 +138,7 @@ object AppContent {
     val durga = Deity(
         id = "deity-durga",
         slug = "durga",
-        name = LocalizedText(en = "Durga", sa = "à¤¦à¥à¤°à¥à¤—à¤¾"),
+        name = LocalizedText(en = "Durga", sa = "\u0926\u0941\u0930\u094d\u0917\u093e"),
         shortDescription = "Warrior Mother who protects dharma and removes fear.",
         fullDescription = "Durga prayers in the app support courage, resilience, and disciplined devotion during uncertain life phases.",
         pronunciationGuide = "Dur-ga",
@@ -149,7 +149,7 @@ object AppContent {
     val rama = Deity(
         id = "deity-rama",
         slug = "rama",
-        name = LocalizedText(en = "Rama", sa = "à¤°à¤¾à¤®"),
+        name = LocalizedText(en = "Rama", sa = "\u0930\u093e\u092e"),
         shortDescription = "Embodiment of dharma, integrity, and steady devotion.",
         fullDescription = "Rama prayers in the app are positioned for families seeking values-centered practice and inner steadiness.",
         pronunciationGuide = "Raa-ma",
@@ -160,7 +160,7 @@ object AppContent {
     val surya = Deity(
         id = "deity-surya",
         slug = "surya",
-        name = LocalizedText(en = "Surya", sa = "à¤¸à¥‚à¤°à¥à¤¯"),
+        name = LocalizedText(en = "Surya", sa = "\u0938\u0942\u0930\u094d\u092f"),
         shortDescription = "Solar deity associated with vitality, health, and discipline.",
         fullDescription = "Surya prayers in the app support daily structure, focus, and morning prayer routines.",
         pronunciationGuide = "Sur-ya",
@@ -171,7 +171,7 @@ object AppContent {
     val murugan = Deity(
         id = "deity-murugan",
         slug = "murugan",
-        name = LocalizedText(en = "Murugan", sa = "à¤¸à¥à¤•à¤¨à¥à¤¦"),
+        name = LocalizedText(en = "Murugan", sa = "\u0938\u094d\u0915\u0928\u094d\u0926"),
         shortDescription = "South Indian deity of courage, wisdom, and youthful strength.",
         fullDescription = "Murugan prayers in the app serve diaspora families seeking South Indian devotional continuity across generations.",
         pronunciationGuide = "Moo-roo-gan",
@@ -1412,7 +1412,7 @@ object AppContent {
         )
 
         val devanagariRaw = prayer.content.devanagari?.takeIf { it.isNotBlank() }
-        val fallbackDevanagari = "ॐ नमः"
+        val fallbackDevanagari = "\u0950 \u0928\u092e\u0903"
         val normalizedDevanagari = when {
             devanagariRaw == null -> fallbackDevanagari
             containsMojibake(devanagariRaw) -> fallbackDevanagari
@@ -1445,7 +1445,7 @@ object AppContent {
 
     private fun containsMojibake(value: String?): Boolean {
         if (value.isNullOrBlank()) return false
-        return value.contains("Ã") || value.contains("Â") || value.contains("ï¿½")
+        return value.contains('\uFFFD') || Regex("[\\u00C2\\u00C3\\u00E0\\u00E2\\u00F0]").containsMatchIn(value)
     }
 
     private fun sanitizeIast(value: String, fallback: String): String {

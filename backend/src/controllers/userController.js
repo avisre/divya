@@ -42,16 +42,60 @@ const CONTACT_CATEGORIES = new Set([
   "booking_help",
   "gothram_help",
   "technical_issue",
-  "feature_request",
-  "other"
+  "video_help",
+  "general"
 ]);
+
+const CONTACT_CATEGORY_ALIASES = {
+  feature_request: "general",
+  other: "general"
+};
+
+function normalizeTimezone(value) {
+  if (typeof value !== "string") return "";
+  return value.trim();
+}
+
+function normalizeContactCategory(value) {
+  const raw = String(value || "general").trim().toLowerCase();
+  return CONTACT_CATEGORY_ALIASES[raw] || raw;
+}
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
 }
 
+function serializeUserProfile(user) {
+  return {
+    id: normalizeId(user._id),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    country: user.country,
+    timezone: user.timezone || "",
+    currency: user.currency,
+    profilePicture: user.profilePicture,
+    onboarding: user.onboarding,
+    preferredDeity: user.preferredDeity,
+    preferredLanguage: user.preferredLanguage,
+    prayerReminders: user.prayerReminders,
+    subscription: user.subscription,
+    streak: user.streak,
+    isGuest: user.isGuest,
+    sessionsBeforeSignup: user.sessionsBeforeSignup,
+    learningProgress: user.learningProgress,
+    sharedSessions: user.sharedSessions,
+    giftsGiven: user.giftsGiven,
+    giftsReceived: user.giftsReceived,
+    favoritePrayers: user.favoritePrayers,
+    completedPrayers: user.completedPrayers,
+    audioComingSoonSubscriptions: user.audioComingSoonSubscriptions,
+    createdAt: user.createdAt
+  };
+}
+
 export async function getProfile(req, res) {
-  return res.json(req.user);
+  return res.json(serializeUserProfile(req.user));
 }
 
 export async function updateProfile(req, res, next) {
@@ -59,11 +103,11 @@ export async function updateProfile(req, res, next) {
     const fields = ["name", "country", "timezone", "currency", "preferredLanguage", "prayerReminders"];
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        req.user[field] = req.body[field];
+        req.user[field] = field === "timezone" ? normalizeTimezone(req.body[field]) : req.body[field];
       }
     });
     await req.user.save();
-    return res.json(req.user);
+    return res.json(serializeUserProfile(req.user));
   } catch (error) {
     next(error);
   }
@@ -71,9 +115,9 @@ export async function updateProfile(req, res, next) {
 
 export async function updateTimezone(req, res, next) {
   try {
-    req.user.timezone = req.body.timezone;
+    req.user.timezone = normalizeTimezone(req.body.timezone);
     await req.user.save();
-    return res.json(req.user);
+    return res.json(serializeUserProfile(req.user));
   } catch (error) {
     next(error);
   }
@@ -88,7 +132,10 @@ export async function saveOnboarding(req, res, next) {
       completedAt: new Date()
     };
     await req.user.save();
-    return res.json(req.user.onboarding);
+    return res.json({
+      onboarding: req.user.onboarding,
+      user: serializeUserProfile(req.user)
+    });
   } catch (error) {
     next(error);
   }
@@ -104,7 +151,7 @@ export async function prayerComplete(req, res, next) {
     });
 
     const now = new Date();
-    const timezone = req.user.timezone || "America/New_York";
+    const timezone = req.user.timezone || "UTC";
     const lastPrayedAt = req.user.streak.lastPrayedAt;
     const dayDiff = lastPrayedAt ? diffInTimezoneDays(lastPrayedAt, now, timezone) : null;
     const tier = req.user.subscription?.tier || "free";
@@ -228,7 +275,7 @@ export async function submitContactRequest(req, res, next) {
     const email = String(req.body?.email || req.user?.email || "").trim().toLowerCase();
     const subject = String(req.body?.subject || "").trim();
     const message = String(req.body?.message || "").trim();
-    const category = String(req.body?.category || "other").trim().toLowerCase();
+    const category = normalizeContactCategory(req.body?.category);
     const bookingReference = req.body?.context?.bookingReference
       ? String(req.body.context.bookingReference).trim()
       : undefined;
@@ -254,7 +301,7 @@ export async function submitContactRequest(req, res, next) {
       name,
       email,
       country: req.body?.country || req.user?.country,
-      timezone: req.body?.timezone || req.user?.timezone,
+      timezone: normalizeTimezone(req.body?.timezone || req.user?.timezone),
       category,
       subject,
       message,

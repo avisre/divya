@@ -3,8 +3,23 @@ import { User } from "../models/User.js";
 import { PrayerCorrection } from "../models/PrayerCorrection.js";
 import { getDailyPrayerForUser } from "../utils/dailyPrayerEngine.js";
 import crypto from "crypto";
+import mongoose from "mongoose";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const AUDIO_SIGN_SECRET = process.env.AUDIO_SIGN_SECRET || process.env.JWT_SECRET || "divya-audio-sign";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const RAW_AUDIO_DIR_CANDIDATES = [
+  path.resolve(__dirname, "../../androidApp/src/main/res/raw"),
+  path.resolve(__dirname, "../../../androidApp/src/main/res/raw"),
+  path.resolve(process.cwd(), "androidApp/src/main/res/raw"),
+  path.resolve(process.cwd(), "../androidApp/src/main/res/raw"),
+  path.resolve(process.cwd(), "src/main/res/raw"),
+  path.resolve(process.cwd(), "public/prayers")
+];
 
 function normalizeId(value) {
   if (!value) return "";
@@ -39,6 +54,7 @@ function canAccessPrayer(prayer, user) {
 
 function parseCodecFromUrl(audioUrl) {
   const lower = String(audioUrl || "").toLowerCase();
+  if (lower.startsWith("raw://")) return "audio/mpeg";
   if (lower.endsWith(".mp3")) return "audio/mpeg";
   if (lower.endsWith(".ogg")) return "audio/ogg";
   if (lower.endsWith(".m4a")) return "audio/mp4";
@@ -60,9 +76,34 @@ function audioSourceLabel(prayer) {
   return "bundled_or_local";
 }
 
-function signedAudioToken({ prayerId, userId, expiresAt }) {
-  const payload = `${prayerId}|${userId || "guest"}|${expiresAt}`;
+function signedAudioToken({ prayerId, expiresAt }) {
+  const payload = `${prayerId}|${expiresAt}`;
   return crypto.createHmac("sha256", AUDIO_SIGN_SECRET).update(payload).digest("hex");
+}
+
+function resolveAudioUrlForClient(prayer, req) {
+  const audioUrl = String(prayer.audioUrl || "").trim();
+  if (!audioUrl) return null;
+  if (audioUrl.startsWith("http://") || audioUrl.startsWith("https://")) return audioUrl;
+  if (audioUrl.startsWith("/")) return `${req.protocol}://${req.get("host")}${audioUrl}`;
+  return `${req.protocol}://${req.get("host")}/${audioUrl.replace(/^\/+/, "")}`;
+}
+
+function resolveRawAudioFile(rawResource) {
+  const base = String(rawResource || "").replace(/^raw:\/\//, "").trim();
+  if (!base) return null;
+  const allowed = /^[a-z0-9_]+$/;
+  if (!allowed.test(base)) return null;
+  const extensions = [".mp3", ".ogg", ".wav", ".m4a", ".aac"];
+  for (const dir of RAW_AUDIO_DIR_CANDIDATES) {
+    for (const ext of extensions) {
+      const candidate = path.join(dir, `${base}${ext}`);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+  }
+  return null;
 }
 
 function buildAudioMetadata(prayer, user, req) {
@@ -72,7 +113,6 @@ function buildAudioMetadata(prayer, user, req) {
   const expiresAt = Math.floor(Date.now() / 1000) + 30 * 60;
   const sig = signedAudioToken({
     prayerId: normalizeId(prayer._id),
-    userId: normalizeId(user?._id) || null,
     expiresAt
   });
   const streamUrl = `${req.protocol}://${req.get("host")}/api/prayers/${normalizeId(prayer._id)}/audio/stream?expires=${expiresAt}&sig=${sig}`;
@@ -84,7 +124,8 @@ function buildAudioMetadata(prayer, user, req) {
 
   return {
     prayerId: normalizeId(prayer._id),
-    url: prayer.audioUrl ? (requiredTier === "free" ? prayer.audioUrl : streamUrl) : null,
+    url: prayer.audioUrl ? streamUrl : null,
+    directUrl: prayer.audioUrl ? resolveAudioUrlForClient(prayer, req) : null,
     streamUrl: prayer.audioUrl ? streamUrl : null,
     codec: prayer.audioCodec || parseCodecFromUrl(prayer.audioUrl),
     durationSeconds: Number(prayer.durationMinutes || 0) * 60,
@@ -159,7 +200,11 @@ export async function getPrayers(req, res, next) {
 
 export async function getPrayerById(req, res, next) {
   try {
-    const prayer = await Prayer.findById(req.params.id).populate("deity");
+    const identifier = String(req.params.id || "").trim();
+    const query = mongoose.isValidObjectId(identifier)
+      ? { $or: [{ _id: identifier }, { slug: identifier }, { externalId: identifier }] }
+      : { $or: [{ slug: identifier }, { externalId: identifier }] };
+    const prayer = await Prayer.findOne(query).populate("deity");
     if (!prayer) {
       return res.status(404).json({ message: "Prayer not found" });
     }
@@ -274,7 +319,6 @@ export async function streamPrayerAudio(req, res, next) {
 
     const expected = signedAudioToken({
       prayerId: normalizeId(prayer._id),
-      userId: normalizeId(req.user?._id) || null,
       expiresAt
     });
     if (expected !== sig) {
@@ -283,6 +327,25 @@ export async function streamPrayerAudio(req, res, next) {
 
     if (!canAccessPrayer(prayer, req.user)) {
       return res.status(402).json({ message: "Upgrade required for this prayer audio." });
+    }
+
+    if (String(prayer.audioUrl).startsWith("raw://")) {
+      const filePath = resolveRawAudioFile(prayer.audioUrl);
+      if (!filePath) {
+        return res.status(404).json({ message: "Bundled prayer audio file not found." });
+      }
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeByExt = {
+        ".mp3": "audio/mpeg",
+        ".ogg": "audio/ogg",
+        ".wav": "audio/wav",
+        ".m4a": "audio/mp4",
+        ".aac": "audio/aac"
+      };
+      const mime = mimeByExt[ext] || "application/octet-stream";
+      res.setHeader("Content-Type", mime);
+      res.setHeader("Cache-Control", "public, max-age=604800");
+      return res.sendFile(filePath);
     }
 
     return res.redirect(prayer.audioUrl);

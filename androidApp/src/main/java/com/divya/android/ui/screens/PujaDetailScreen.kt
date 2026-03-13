@@ -1,6 +1,7 @@
 package com.divya.android.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
@@ -12,15 +13,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.divya.android.navigation.DivyaRoutes
+import com.divya.android.ui.formatPrice
 import com.divya.android.ui.components.GiftConfirmationCard
 import com.divya.android.ui.components.GiftPujaSheet
 import com.divya.android.ui.components.PujaCard
+import com.divya.android.ui.theme.Ivory
+import com.divya.android.ui.theme.Saffron
 import com.divya.android.ui.theme.TempleGold
 
 @Composable
 fun PujaDetailScreen(onOpen: (String) -> Unit) {
+    val isCompactPhone = LocalConfiguration.current.screenWidthDp < 380
     var selectedPujaName by rememberSaveable { mutableStateOf(AppContent.abhishekam.name.en) }
     var showGiftFlow by rememberSaveable { mutableStateOf(false) }
     var giftConfirmed by rememberSaveable { mutableStateOf(false) }
@@ -30,31 +36,62 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
         eyebrow = "Sacred offering",
         title = selectedPuja.name.en,
         subtitle = "See what this ritual includes, why families choose it, and how the temple will carry it in your name.",
-        badge = "Waitlist only",
+        titleAccessory = {
+            StatusPill(
+                label = "Waitlist only",
+                color = TempleGold,
+            )
+        },
+        heroVariant = HeroCardVariant.PUJA,
         heroStats = listOf(
-            HeroStat("${selectedPuja.displayPrice?.currency ?: "USD"} ${selectedPuja.displayPrice?.amount ?: selectedPuja.pricing.usd}", "Presented price"),
+            HeroStat(
+                formatPrice(
+                    amount = selectedPuja.displayPrice?.amount ?: selectedPuja.pricing.usd,
+                    currencyCode = selectedPuja.displayPrice?.currency ?: "USD",
+                ),
+                "Presented price",
+            ),
             HeroStat("${selectedPuja.duration} min", "Temple duration"),
             HeroStat("${selectedPuja.estimatedWaitWeeks} weeks", "Estimated wait"),
             HeroStat("Private video", "Delivered after completion"),
         ),
         heroContent = {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(onClick = { onOpen(DivyaRoutes.waitlist.route) }, modifier = Modifier.weight(1f)) {
-                    Text("Join waitlist")
+            if (isCompactPhone) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    PrimaryActionButton(
+                        text = "Join waitlist",
+                        onClick = { onOpen(DivyaRoutes.waitlist.route) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    SecondaryActionButton(
+                        text = "Gift this puja",
+                        onClick = {
+                            showGiftFlow = true
+                            giftConfirmed = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
-                OutlinedButton(
-                    onClick = {
-                        showGiftFlow = true
-                        giftConfirmed = false
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Gift this puja")
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    PrimaryActionButton(
+                        text = "Join waitlist",
+                        onClick = { onOpen(DivyaRoutes.waitlist.route) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    SecondaryActionButton(
+                        text = "Gift this puja",
+                        onClick = {
+                            showGiftFlow = true
+                            giftConfirmed = false
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         },
     ) {
-        item { DividerLabel("Choose offering") }
+        SectionHeader("Choose offering")
 
         item {
             PanelCard(title = "Choose a puja", subtitle = "Select one offering and the ritual guidance below updates immediately.") {
@@ -66,13 +103,16 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
                         showGiftFlow = false
                         giftConfirmed = false
                     },
+                    selectedContainerColor = Saffron,
+                    selectedLabelColor = Ivory,
+                    selectedBorderColor = Saffron,
                 )
             }
         }
 
         item { PujaCard(selectedPuja) }
 
-        item { DividerLabel("Why families book it") }
+        SectionHeader("Why families book it")
 
         item {
             PanelCard(
@@ -111,7 +151,7 @@ fun PujaDetailScreen(onOpen: (String) -> Unit) {
             )
         }
 
-        item { DividerLabel("Gift for family") }
+        SectionHeader("Gift for family")
 
         if (!showGiftFlow) {
             item {

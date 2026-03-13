@@ -182,6 +182,16 @@ The web app uses the existing backend API and Socket.IO server. It does not conn
   cd admin
   npm run build
   ```
+- One-command production audit (runs backend/admin/web/android gates and emits a scored report):
+  ```powershell
+  .\scripts\production_audit.ps1
+  ```
+  - Output: `docs/PRODUCTION_AUDIT_LATEST.md`
+- One-command UI/UX audit (runs web compile/e2e, Android UI compile, and design-system parity checks):
+  ```powershell
+  .\scripts\ui_ux_audit.ps1
+  ```
+  - Output: `docs/UI_UX_AUDIT_LATEST.md`
 
 ## Licensed YouTube Media Download
 

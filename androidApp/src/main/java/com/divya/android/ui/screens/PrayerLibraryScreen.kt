@@ -88,6 +88,7 @@ fun PrayerLibraryScreen(onOpen: (String) -> Unit) {
         title = "Find the right prayer for today",
         subtitle = "Search in English or script, refine by deity or type, and enter the prayer that fits today.",
         badge = activeTier?.let { "Account tier: $it" } ?: "${sortedPrayers.count { resolveUnlocked(it.id, previewTier, entitlementMap) }} accessible",
+        heroVariant = HeroCardVariant.PRAYER,
         heroStats = listOf(
             HeroStat("${catalog.size}", "Total prayers"),
             HeroStat("${catalog.count { !it.audioUrl.isNullOrBlank() }}", "Audio-ready"),
@@ -99,17 +100,17 @@ fun PrayerLibraryScreen(onOpen: (String) -> Unit) {
             item {
                 AccentNote(
                     title = "Refreshing catalog",
-                    body = "Syncing prayer catalog, entitlement map, and audio metadata from backend.",
+                    body = "Refreshing available prayers and audio access for your account.",
                 )
             }
         }
 
-        item { DividerLabel("Browse") }
+        SectionHeader("Browse")
 
         item {
             PanelCard(
                 title = "Find a prayer",
-                subtitle = "Search and access live together so the library starts with content, not controls.",
+                subtitle = "Search by name, script, or transliteration and begin from the prayer that feels right today.",
             ) {
                 OutlinedTextField(
                     value = query,
@@ -128,7 +129,7 @@ fun PrayerLibraryScreen(onOpen: (String) -> Unit) {
                         onSelect = { previewTier = it },
                     )
                 } else {
-                    TextBlock("Unlock state uses backend entitlement checks for your signed-in account tier.")
+                    TextBlock("Showing access for your current plan.")
                 }
             }
         }
@@ -136,7 +137,7 @@ fun PrayerLibraryScreen(onOpen: (String) -> Unit) {
         item {
             PanelCard(
                 title = "Filters",
-                subtitle = "Type, deity, duration, and favorites use one visual language across the whole app.",
+                subtitle = "Refine by type, deity, duration, or favorites.",
             ) {
                 SelectableTagRow(
                     options = listOf("All types", "aarti", "mantra", "chalisa", "stotram", "bhajan"),
@@ -213,7 +214,8 @@ fun PrayerLibraryScreen(onOpen: (String) -> Unit) {
                             "funnel_stage",
                             mapOf("stage" to "library_to_player", "prayer_id" to prayer.id),
                         )
-                        onOpen(DivyaRoutes.prayerFor(prayer.id))
+                        val prayerRef = prayer.slug.takeIf { it.isNotBlank() } ?: prayer.id
+                        onOpen(DivyaRoutes.prayerFor(prayerRef))
                     } else {
                         DivyaRuntime.trackEvent(
                             "funnel_stage",
@@ -225,12 +227,12 @@ fun PrayerLibraryScreen(onOpen: (String) -> Unit) {
             }
         }
 
-        item { DividerLabel("Membership") }
+        SectionHeader("Membership")
 
         item {
             PanelCard(
                 title = "How access works",
-                subtitle = "The library stays generous on free while making deeper practice and downloads clearly worth upgrading for.",
+                subtitle = "Each plan opens more prayers and deeper listening features.",
             ) {
                 TextBlock("Free includes $freeCount complete prayers. Bhakt opens $bhaktCount. Seva unlocks all $sevaCount.")
                 TagRow(tags = AppContent.languageSupport.take(4))

@@ -42,7 +42,7 @@ export function RegisterForm() {
         setPending(true);
         setError("");
         try {
-          await sendJson("/api/auth/register", {
+          await sendJson("/api/web-auth/register", {
             method: "POST",
             body: JSON.stringify(values)
           });

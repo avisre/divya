@@ -17,7 +17,7 @@ export function OAuthCompleteClient() {
       return;
     }
 
-    void sendJson<{ next: string }>("/api/auth/oauth/complete", {
+    void sendJson<{ next: string }>("/api/web-auth/oauth/complete", {
       method: "POST",
       body: JSON.stringify({ token, next })
     })

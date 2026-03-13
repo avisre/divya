@@ -33,7 +33,7 @@ export function LoginForm() {
         setPending(true);
         setError("");
         try {
-          await sendJson("/api/auth/login", {
+          await sendJson("/api/web-auth/login", {
             method: "POST",
             body: JSON.stringify(values)
           });

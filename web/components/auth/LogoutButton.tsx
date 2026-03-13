@@ -10,7 +10,7 @@ export function LogoutButton() {
       className="button button--ghost"
       type="button"
       onClick={async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
+        await fetch("/api/web-auth/logout", { method: "POST" });
         router.push("/login");
         router.refresh();
       }}

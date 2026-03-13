@@ -27,14 +27,37 @@ const nextApp = next({
   dev,
   dir: process.cwd()
 });
-const nextHandler = nextApp.getRequestHandler();
 
 async function startUnifiedServer() {
-  await nextApp.prepare();
   const { app, httpServer, io } = createBackendHttpServer(config);
   let runtime = null;
+  let nextReady = false;
+  let nextPrepareError = null;
+  let nextHandler = null;
+  let nextPreparePromise = null;
 
-  app.all("*", (req, res) => nextHandler(req, res));
+  app.all("*", async (req, res) => {
+    if (!nextPreparePromise) {
+      res.status(503).send("Web runtime is starting.");
+      return;
+    }
+
+    if (!nextReady) {
+      try {
+        await nextPreparePromise;
+      } catch {
+        res.status(503).send("Web runtime failed to initialize.");
+        return;
+      }
+    }
+
+    if (nextPrepareError || !nextHandler) {
+      res.status(503).send("Web runtime failed to initialize.");
+      return;
+    }
+
+    return nextHandler(req, res);
+  });
 
   let shuttingDown = false;
   const shutdown = async (signal) => {
@@ -68,11 +91,35 @@ async function startUnifiedServer() {
     });
   });
 
+  nextPreparePromise = nextApp
+    .prepare()
+    .then(() => {
+      nextHandler = nextApp.getRequestHandler();
+      nextReady = true;
+      console.log("Next web runtime initialized");
+    })
+    .catch((error) => {
+      nextPrepareError = error;
+      console.error("Failed to initialize Next web runtime", error);
+      throw error;
+    });
+
   try {
     runtime = await initializeBackendRuntime(config);
     console.log("Backend runtime initialized");
   } catch (error) {
     console.error("Failed to initialize backend runtime", error);
+    await stopBackendRuntime({
+      io,
+      httpServer,
+      ...runtime
+    });
+    process.exit(1);
+  }
+
+  try {
+    await nextPreparePromise;
+  } catch {
     await stopBackendRuntime({
       io,
       httpServer,

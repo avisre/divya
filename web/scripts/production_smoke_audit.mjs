@@ -152,10 +152,11 @@ async function main() {
     method: "POST",
     headers: registerCookie ? { cookie: registerCookie } : {}
   });
+  const logoutCookie = cookieHeaderFrom(logout.response);
   add("logout", logout.response.ok, { status: logout.response.status });
 
   const sessionAfterLogout = await fetchJson(base + "/api/web-auth/session", {
-    headers: registerCookie ? { cookie: registerCookie } : {}
+    headers: logoutCookie ? { cookie: logoutCookie } : {}
   });
   add("session cleared after logout", sessionAfterLogout.response.ok && sessionAfterLogout.payload?.user === null, {
     status: sessionAfterLogout.response.status

@@ -66,6 +66,12 @@ function createSocketCors(config) {
   };
 }
 
+const nextOwnedApiPrefixes = ["/api/web-auth", "/api/backend"];
+
+function shouldSkipExpressBodyParsers(path = "") {
+  return nextOwnedApiPrefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
 export function createBackendApp(config) {
   const app = express();
   if (config.trustProxy) {
@@ -94,8 +100,20 @@ export function createBackendApp(config) {
   app.use(cors(createCorsOptions(config)));
   app.use(morgan(config.isProduction ? "combined" : "dev"));
   app.use("/api/webhooks", webhookRoutes);
-  app.use(express.json({ limit: "5mb" }));
-  app.use(express.urlencoded({ extended: false, limit: "2mb" }));
+  const jsonParser = express.json({ limit: "5mb" });
+  const urlencodedParser = express.urlencoded({ extended: false, limit: "2mb" });
+  app.use((req, res, next) => {
+    if (shouldSkipExpressBodyParsers(req.path)) {
+      return next();
+    }
+    return jsonParser(req, res, next);
+  });
+  app.use((req, res, next) => {
+    if (shouldSkipExpressBodyParsers(req.path)) {
+      return next();
+    }
+    return urlencodedParser(req, res, next);
+  });
   app.use("/api", globalApiLimiter);
 
   app.get("/health", (req, res) => {

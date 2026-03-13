@@ -14,12 +14,13 @@ fun FestivalDetailScreen(onOpen: (String) -> Unit) {
     ScreenScaffold(
         eyebrow = "Festival preparation",
         title = "${prep.festivalName} journey",
-        subtitle = "Day-by-day prep guidance designed for diaspora schedules and resources.",
+        subtitle = "Follow each preparation step calmly, with guidance that works for families living abroad.",
         badge = "${prep.daysBefore} days remaining",
+        heroVariant = HeroCardVariant.CALENDAR,
         heroStats = listOf(
             HeroStat("21 days", "Preparation span"),
-            HeroStat("Daily", "Prep prayer loop"),
-            HeroStat("NRI-first", "Practical diaspora notes"),
+            HeroStat("Daily", "Prayer rhythm"),
+            HeroStat("Diaspora", "Practical notes"),
         ),
     ) {
         item {
@@ -33,11 +34,12 @@ fun FestivalDetailScreen(onOpen: (String) -> Unit) {
                     prep.copy(daysBefore = 1, title = "Ready", task = "Prepare first-day offering"),
                     prep.copy(daysBefore = 0, title = "Day 1", task = "Begin Navarathri with daily prayer and reflection"),
                 ),
+                diasporaNote = prep.diasporaNote,
             )
         }
         item {
-            Button(onClick = { onOpen(DivyaRoutes.prayer.route) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Start today's festival prayer")
+            Button(onClick = { onOpen(DivyaRoutes.prayerFor(prep.prepPrayer.id)) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Begin festival prayer")
             }
         }
     }

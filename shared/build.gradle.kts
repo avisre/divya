@@ -47,7 +47,7 @@ kotlin {
 
 android {
     namespace = "com.divya.shared"
-    compileSdk = 34
+    compileSdk = 35
     defaultConfig {
         minSdk = 26
     }

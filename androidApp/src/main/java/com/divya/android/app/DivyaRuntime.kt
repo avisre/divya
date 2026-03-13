@@ -3,6 +3,7 @@ package com.divya.android.app
 import android.content.Context
 import android.util.Log
 import com.divya.android.notifications.DivyaNotificationCenter
+import com.divya.android.media.PrayerAudioPlayer
 import com.divya.data.models.Prayer
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
@@ -45,7 +46,11 @@ object DivyaRuntime {
         sessionStore = SessionStore(applicationContext)
         backendClient = BackendClient(applicationContext)
         _sessionState.value = sessionStore.read()
-        val detectedTimezone = TimeZone.getDefault().id.ifBlank { "America/New_York" }
+        if (_sessionState.value.user?.isGuest == true) {
+            _sessionState.value = SessionState()
+            sessionStore.clear()
+        }
+        val detectedTimezone = TimeZone.getDefault().id.ifBlank { "UTC" }
         sessionStore.saveDetectedTimezone(detectedTimezone)
         DivyaNotificationCenter.ensureChannels(applicationContext)
 
@@ -63,13 +68,6 @@ object DivyaRuntime {
                 registerPendingPushToken()
                 prefetchPanchangCache()
             } else {
-                runCatching {
-                    val guest = backendClient.createGuest(sessionsBeforeSignup = 1)
-                    persist(guest)
-                    trackEvent("guest_session_created", mapOf("source" to "app_init"))
-                }.onFailure {
-                    Log.w(TAG, "Guest session bootstrap failed", it)
-                }
                 prefetchPanchangCache()
             }
             warmPrayerCatalog()
@@ -108,6 +106,15 @@ object DivyaRuntime {
         return session.user ?: error("Missing user after registration")
     }
 
+    suspend fun loginWithGoogle(idToken: String): SessionUser {
+        val session = backendClient.loginWithGoogleIdToken(idToken)
+        persist(session)
+        trackEvent("login_completed", mapOf("method" to "google"))
+        registerPendingPushToken()
+        prefetchPanchangCache()
+        return session.user ?: error("Missing user after Google login")
+    }
+
     suspend fun refreshSession() {
         val token = _sessionState.value.token ?: return
         runCatching {
@@ -133,8 +140,9 @@ object DivyaRuntime {
         refreshSession()
     }
 
+    fun getDetectedTimezone(): String = sessionStore.getDetectedTimezone()
+
     suspend fun updateReminderSettings(
-        timezone: String,
         morningEnabled: Boolean,
         eveningEnabled: Boolean,
         festivalAlerts: Boolean,
@@ -143,7 +151,6 @@ object DivyaRuntime {
         backendClient.updateProfile(
             token = token,
             updates = mapOf(
-                "timezone" to timezone,
                 "prayerReminders" to mapOf(
                     "morningEnabled" to morningEnabled,
                     "morningTime" to "07:00",
@@ -161,6 +168,15 @@ object DivyaRuntime {
                 "festivalAlerts" to festivalAlerts,
             ),
         )
+        refreshSession()
+    }
+
+    suspend fun updateTimezone(timezone: String) {
+        backendClient.updateProfile(
+            token = requireToken(),
+            updates = mapOf("timezone" to timezone.trim()),
+        )
+        trackEvent("timezone_updated", mapOf("timezone" to timezone.trim()))
         refreshSession()
     }
 
@@ -294,13 +310,9 @@ object DivyaRuntime {
     }
 
     fun signOut() {
+        runCatching { PrayerAudioPlayer.clearCurrent(reason = "sign_out") }
         clearSession()
-        appScope.launch {
-            runCatching {
-                val guest = backendClient.createGuest(sessionsBeforeSignup = 1)
-                persist(guest)
-            }
-        }
+        trackEvent("logout_completed")
     }
 
     fun trackScreen(route: String) {

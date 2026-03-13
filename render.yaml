@@ -1,13 +1,14 @@
 services:
   - type: web
-    name: divya-backend
+    name: divya-app
     runtime: node
-    rootDir: backend
+    rootDir: .
     plan: starter
     autoDeploy: false
-    buildCommand: npm ci
-    startCommand: npm run start
+    buildCommand: cd backend && npm ci && cd ../web && npm ci && npm run build
+    startCommand: cd web && npm run start
     healthCheckPath: /health/ready
+    pullRequestPreviewsEnabled: false
     envVars:
       - key: NODE_VERSION
         value: "20"
@@ -15,14 +16,12 @@ services:
         value: production
       - key: PORT
         value: "10000"
-      - key: DISABLE_PAYMENTS
-        value: "true"
-      - key: ENABLE_SIMULATOR_API
-        value: "false"
-      - key: ENABLE_OBSERVABILITY_INGEST
-        value: "true"
-      - key: TRUST_PROXY
-        value: "true"
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: NEXT_PUBLIC_BACKEND_ORIGIN
+        sync: false
+      - key: BACKEND_API_BASE_URL
+        sync: false
       - key: CORS_ORIGINS
         sync: false
       - key: MONGODB_URI
@@ -33,7 +32,25 @@ services:
         value: 30d
       - key: PUBLIC_API_BASE_URL
         sync: false
+      - key: WEB_APP_URL
+        sync: false
       - key: ADMIN_DASHBOARD_URL
+        sync: false
+      - key: DISABLE_PAYMENTS
+        value: "true"
+      - key: ENABLE_SIMULATOR_API
+        value: "false"
+      - key: ENABLE_OBSERVABILITY_INGEST
+        value: "true"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_ANDROID_WEB_CLIENT_ID
         sync: false
       - key: SENDGRID_API_KEY
         sync: false
@@ -53,21 +70,3 @@ services:
         sync: false
       - key: MIXPANEL_TOKEN
         sync: false
-  - type: web
-    name: divya-web
-    runtime: static
-    rootDir: web
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    pullRequestPreviewsEnabled: false
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: NODE_VERSION
-        value: "20"
-      - key: VITE_API_BASE_URL
-        value: https://divya-twug.onrender.com/api
-      - key: VITE_SOCKET_BASE_URL
-        value: https://divya-twug.onrender.com

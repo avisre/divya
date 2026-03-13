@@ -6,6 +6,7 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="${usesCleartextTraffic}"
         android:label="Divya"
+        android:theme="@style/Theme.Divya"
         android:supportsRtl="true">
         <service
             android:name=".notifications.DivyaFirebaseMessagingService"

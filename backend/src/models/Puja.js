@@ -8,6 +8,7 @@ const pujaSchema = new mongoose.Schema({
     ml: { type: String, required: true },
     sa: String
   },
+  slug: { type: String, unique: true, sparse: true },
   type: {
     type: String,
     enum: ["abhishekam", "archana", "homa", "special_seva", "deeparadhana", "kalasha_puja"],
@@ -42,4 +43,3 @@ const pujaSchema = new mongoose.Schema({
 });
 
 export const Puja = mongoose.model("Puja", pujaSchema);
-

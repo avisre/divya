@@ -1,7 +1,5 @@
 package com.divya.android.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,46 +26,44 @@ fun OnboardingScreen(onOpen: (String) -> Unit) {
     var statusMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     ScreenScaffold(
-        eyebrow = "3-question quiz",
+        eyebrow = "Welcome",
         title = "Personalize the first week",
-        subtitle = "The onboarding flow now persists to the backend so home recommendations, reminders, and future multi-temple discovery can build on a real profile.",
-        badge = "Saved to backend",
+        subtitle = "Answer three short questions so your prayer home, reminders, and recommendations feel more personal from day one.",
+        badge = "3 quick steps",
         heroStats = listOf(
-            HeroStat("3 steps", "Short flow"),
-            HeroStat("Shaktism", "Pre-selected"),
-            HeroStat("Real profile", "Stored server-side"),
+            HeroStat("3 steps", "Short setup"),
+            HeroStat("Tailored", "Daily prayer suggestions"),
+            HeroStat("Reminder timing", "Shaped by your answers"),
         ),
         heroContent = {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = {
-                        saving = true
-                        statusMessage = null
-                        scope.launch {
-                            runCatching {
-                                DivyaRuntime.saveOnboarding(
-                                    prayerFrequency = frequencyKey(frequency),
-                                    purpose = purposeKey(purpose),
-                                    tradition = traditionKey(tradition),
-                                )
-                            }.onSuccess {
-                                statusMessage = "Your home screen is personalized."
-                                onOpen(DivyaRoutes.home.route)
-                            }.onFailure {
-                                statusMessage = it.message ?: "Could not save onboarding"
-                                DivyaRuntime.reportHandledError(it, mapOf("screen" to "onboarding"))
-                            }
-                            saving = false
+            Button(
+                onClick = {
+                    saving = true
+                    statusMessage = null
+                    scope.launch {
+                        runCatching {
+                            DivyaRuntime.saveOnboarding(
+                                prayerFrequency = frequencyKey(frequency),
+                                purpose = purposeKey(purpose),
+                                tradition = traditionKey(tradition),
+                            )
+                        }.onSuccess {
+                            statusMessage = "Your home screen is personalized."
+                            onOpen(DivyaRoutes.home.route)
+                        }.onFailure {
+                            statusMessage = it.message ?: "Could not save onboarding"
+                            DivyaRuntime.reportHandledError(it, mapOf("screen" to "onboarding"))
                         }
-                    },
-                    enabled = !saving,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    if (saving) {
-                        CircularProgressIndicator()
-                    } else {
-                        Text("Continue")
+                        saving = false
                     }
+                },
+                enabled = !saving,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (saving) {
+                    CircularProgressIndicator()
+                } else {
+                    Text("Continue")
                 }
             }
         },
@@ -102,7 +98,7 @@ fun OnboardingScreen(onOpen: (String) -> Unit) {
         item {
             StatusStrip(
                 label = "Preview of your home feed",
-                detail = "$purpose - $tradition prayers first - Morning reminders tuned for $frequency practice",
+                detail = "$purpose, $tradition guidance, and reminder timing shaped around your current practice.",
             )
         }
         statusMessage?.let { message ->

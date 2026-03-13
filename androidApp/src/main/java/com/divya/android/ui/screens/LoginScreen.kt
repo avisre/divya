@@ -1,12 +1,8 @@
 package com.divya.android.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,78 +10,101 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.divya.android.app.DivyaRuntime
 import com.divya.android.navigation.DivyaRoutes
+import com.divya.android.ui.components.ProductionOutlinedTextField
+import com.divya.android.ui.theme.AlertMarigold
+import com.divya.android.ui.theme.SuccessLeaf
 import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(onOpen: (String) -> Unit) {
     val scope = rememberCoroutineScope()
-    var email by rememberSaveable { mutableStateOf("admin@divya.app") }
-    var password by rememberSaveable { mutableStateOf("Admin@12345") }
+    val haptic = LocalHapticFeedback.current
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
     var isSubmitting by rememberSaveable { mutableStateOf(false) }
     var statusMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var statusOk by rememberSaveable { mutableStateOf(true) }
+    val canSubmit = email.isNotBlank() && password.isNotBlank()
 
     ScreenScaffold(
         eyebrow = "Account access",
         title = "Return to your sacred routine",
-        subtitle = "Authentication is now backed by the live backend and persists to the device, so favorites, bookings, and videos survive app restarts.",
-        badge = "Live auth",
-        heroStats = listOf(
-            HeroStat("Secure", "JWT session persisted"),
-            HeroStat("Mongo", "Backend connected"),
-        ),
+        subtitle = "Sign in to continue your prayers, bookings, and saved preferences.",
+        badge = "Secure sign-in",
         heroContent = {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = {
-                        isSubmitting = true
-                        statusMessage = null
-                        DivyaRuntime.trackEvent("login_started")
-                        scope.launch {
-                            runCatching {
-                                DivyaRuntime.login(email, password)
-                            }.onSuccess {
-                                statusMessage = "Signed in. Restoring your temple data."
-                                onOpen(DivyaRoutes.home.route)
-                            }.onFailure {
-                                statusMessage = it.message ?: "Login failed"
-                                DivyaRuntime.reportHandledError(it, mapOf("screen" to "login"))
-                            }
-                            isSubmitting = false
-                        }
-                    },
-                    enabled = !isSubmitting,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    if (isSubmitting) {
-                        CircularProgressIndicator()
-                    } else {
-                        Text("Sign in")
+            HeroTrustStrip(
+                markers = listOf(
+                    TrustMarker("\uD83D\uDD12", "Encrypted"),
+                    TrustMarker("\uD83D\uDED5", "Temple-verified"),
+                    TrustMarker("\uD83C\uDF0F", "NRI-first"),
+                ),
+            )
+            PrimaryActionButton(
+                text = "Sign in",
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    if (!canSubmit) {
+                        statusOk = false
+                        statusMessage = "Enter both email and password."
+                        return@PrimaryActionButton
                     }
+                    isSubmitting = true
+                    statusMessage = null
+                    DivyaRuntime.trackEvent("login_started")
+                    scope.launch {
+                        runCatching {
+                            DivyaRuntime.login(email.trim(), password)
+                        }.onSuccess {
+                            statusOk = true
+                            statusMessage = "Signed in. Restoring your temple data."
+                            onOpen(DivyaRoutes.home.route)
+                        }.onFailure {
+                            statusOk = false
+                            statusMessage = it.message ?: "Login failed"
+                            DivyaRuntime.reportHandledError(it, mapOf("screen" to "login"))
+                        }
+                        isSubmitting = false
+                    }
+                },
+                enabled = !isSubmitting,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(if (canSubmit || isSubmitting) 1f else 0.4f),
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator()
                 }
             }
         },
     ) {
         item {
             PanelCard(title = "Email") {
-                OutlinedTextField(
+                ProductionOutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Email address") },
+                    label = "Email address",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true,
                 )
             }
         }
         item {
             PanelCard(title = "Password") {
-                OutlinedTextField(
+                ProductionOutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Password") },
+                    label = "Password",
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     singleLine = true,
                 )
             }
@@ -95,14 +114,25 @@ fun LoginScreen(onOpen: (String) -> Unit) {
                 StatusStrip(
                     label = "Sign-in status",
                     detail = message,
+                    color = if (statusOk) SuccessLeaf else AlertMarigold,
                 )
             }
         }
         item {
             AccentNote(
                 title = "After sign-in",
-                body = "Device token registration, analytics, crash reporting, and secure video access are all tied to the stored session.",
+                body = "You will return to your home screen with your prayer history, bookings, and reminders ready.",
             )
+        }
+        item {
+            PanelCard(title = "New to Divya?") {
+                TextBlock("Create your account to save streaks, favorites, and puja history.")
+                SecondaryActionButton(
+                    text = "Create account",
+                    onClick = { onOpen(DivyaRoutes.register.route) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

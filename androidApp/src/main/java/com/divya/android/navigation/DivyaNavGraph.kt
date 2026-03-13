@@ -2,6 +2,7 @@ package com.divya.android.navigation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -13,6 +14,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.unit.dp
 import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
@@ -40,7 +43,6 @@ import com.divya.android.ui.screens.FeatureOperationsScreen
 import com.divya.android.ui.screens.FestivalDetailScreen
 import com.divya.android.ui.screens.GalleryScreen
 import com.divya.android.ui.screens.GiftsScreen
-import com.divya.android.ui.screens.GuestExploreScreen
 import com.divya.android.ui.screens.HomeScreen
 import com.divya.android.ui.screens.LoginScreen
 import com.divya.android.ui.screens.MyPujasScreen
@@ -65,76 +67,99 @@ import com.divya.android.ui.theme.Saffron
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun DivyaNavGraph(startDestination: String) {
+fun DivyaNavGraph(
+    startDestination: String,
+    hideMiniPlayer: Boolean = false,
+) {
     val showGalleryTools = BuildConfig.ENABLE_GALLERY_TOOLS
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
+    val session by DivyaRuntime.sessionState.collectAsState()
     val currentRoute = backStackEntry?.destination?.route ?: DivyaRoutes.normalize(startDestination)
     val currentTitle = DivyaRoutes.all.firstOrNull { it.route == currentRoute }?.title ?: "Divya"
-    val showPrimaryNav = currentRoute in DivyaRoutes.primary.map { it.route }
+    val publicRoutes = setOf(DivyaRoutes.login.route, DivyaRoutes.register.route, DivyaRoutes.splash.route)
+    val hasAuthenticatedSession = !session.token.isNullOrBlank() && session.user?.isGuest == false
+    val showPrimaryNav = hasAuthenticatedSession && currentRoute in DivyaRoutes.primary.map { it.route }
+    val isAuthScreen = currentRoute in publicRoutes
 
-    LaunchedEffect(currentRoute) {
+    LaunchedEffect(currentRoute, hasAuthenticatedSession) {
+        if (!hasAuthenticatedSession && currentRoute !in publicRoutes) {
+            navController.navigate(DivyaRoutes.login.route) {
+                launchSingleTop = true
+            }
+            return@LaunchedEffect
+        }
+        if (hasAuthenticatedSession && isAuthScreen) {
+            navController.navigate(DivyaRoutes.home.route) {
+                launchSingleTop = true
+            }
+            return@LaunchedEffect
+        }
         DivyaRuntime.trackScreen(currentRoute)
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(currentTitle) },
-                modifier = Modifier.testTag("top_app_bar"),
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Ivory.copy(alpha = 0.98f),
-                    titleContentColor = DeepBrown,
-                    actionIconContentColor = Saffron,
-                    navigationIconContentColor = Saffron,
-                ),
-                navigationIcon = {
-                    if (!showPrimaryNav && currentRoute != DivyaRoutes.gallery.route) {
-                        TextButton(
-                            onClick = { navController.navigateUp() },
-                            modifier = Modifier.testTag("top_action_back"),
-                        ) {
-                            Text("Back")
+            if (!isAuthScreen) {
+                TopAppBar(
+                    title = { Text(currentTitle) },
+                    modifier = Modifier.testTag("top_app_bar"),
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Ivory.copy(alpha = 0.98f),
+                        titleContentColor = DeepBrown,
+                        actionIconContentColor = Saffron,
+                        navigationIconContentColor = Saffron,
+                    ),
+                    navigationIcon = {
+                        if (!showPrimaryNav && currentRoute != DivyaRoutes.gallery.route) {
+                            TextButton(
+                                onClick = { navController.navigateUp() },
+                                modifier = Modifier.testTag("top_action_back"),
+                            ) {
+                                Text("Back")
+                            }
                         }
-                    }
-                },
-                actions = {
-                    if (!showPrimaryNav && currentRoute != DivyaRoutes.home.route) {
-                        TextButton(
-                            onClick = {
-                                navController.navigate(DivyaRoutes.home.route) {
-                                    launchSingleTop = true
-                                }
-                            },
-                            modifier = Modifier.testTag("top_action_home"),
-                        ) {
-                            Text("Home")
+                    },
+                    actions = {
+                        if (hasAuthenticatedSession && !showPrimaryNav && currentRoute != DivyaRoutes.home.route) {
+                            TextButton(
+                                onClick = {
+                                    navController.navigate(DivyaRoutes.home.route) {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                modifier = Modifier.testTag("top_action_home"),
+                            ) {
+                                Text("Home")
+                            }
                         }
-                    }
-                    if (showGalleryTools && currentRoute != DivyaRoutes.gallery.route) {
-                        TextButton(
-                            onClick = {
-                                navController.navigate(DivyaRoutes.gallery.route) {
-                                    launchSingleTop = true
-                                }
-                            },
-                            modifier = Modifier.testTag("top_action_gallery"),
-                        ) {
-                            Text("Gallery")
-                        }
-                    }
-                },
-            )
-        },
-        bottomBar = {
-            Column {
-                PrayerMiniPlayerBar(
-                    onOpenPlayer = {
-                        navController.navigate(DivyaRoutes.nowPlaying.route) {
-                            launchSingleTop = true
+                        if (showGalleryTools && currentRoute != DivyaRoutes.gallery.route) {
+                            TextButton(
+                                onClick = {
+                                    navController.navigate(DivyaRoutes.gallery.route) {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                modifier = Modifier.testTag("top_action_gallery"),
+                            ) {
+                                Text("Gallery")
+                            }
                         }
                     },
                 )
+            }
+        },
+        bottomBar = {
+            Column {
+                if (!hideMiniPlayer) {
+                    PrayerMiniPlayerBar(
+                        onOpenPlayer = {
+                            navController.navigate(DivyaRoutes.nowPlaying.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
                 if (showPrimaryNav) {
                     NavigationBar(
                         modifier = Modifier.testTag("bottom_nav_bar"),
@@ -187,7 +212,6 @@ fun DivyaNavGraph(startDestination: String) {
                 }
             }
             composable(DivyaRoutes.splash.route) { SplashScreen() }
-            composable(DivyaRoutes.guest.route) { GuestExploreScreen(onOpen = navController::navigate) }
             composable(DivyaRoutes.onboarding.route) { OnboardingScreen(onOpen = navController::navigate) }
             composable(DivyaRoutes.login.route) { LoginScreen(onOpen = navController::navigate) }
             composable(DivyaRoutes.register.route) { RegisterScreen(onOpen = navController::navigate) }
@@ -235,22 +259,33 @@ private fun BottomNavEmojiIcon(
     route: DivyaRoute,
     selected: Boolean,
 ) {
-    val selectedContainer = Saffron.copy(alpha = 0.28f)
-    val unselectedContainer = Color.Transparent
-    val glyphColor = if (selected) DeepBrown else DeepBrown.copy(alpha = 0.75f)
+    val selectedContainer = Color(0xFFFDF0E8)
+    val activeColor = Color(0xFFC84B0C)
+    val inactiveColor = Color(0xFFB8A090)
+    val contentColor = if (selected) activeColor else inactiveColor
 
     Box(
         modifier = Modifier
             .testTag("bottom_nav_icon_${route.route}")
             .semantics { contentDescription = route.navLabel }
             .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) selectedContainer else unselectedContainer)
-            .padding(PaddingValues(horizontal = 16.dp, vertical = 8.dp)),
+            .background(if (selected) selectedContainer else Color.Transparent)
+            .padding(PaddingValues(horizontal = 14.dp, vertical = 6.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = route.glyph,
-            color = glyphColor,
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = route.glyph,
+                color = contentColor,
+            )
+            Text(
+                text = route.navLabel,
+                color = contentColor,
+            )
+        }
     }
 }

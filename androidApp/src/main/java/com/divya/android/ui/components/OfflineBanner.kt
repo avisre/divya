@@ -27,7 +27,7 @@ fun OfflineBanner(state: OfflineBannerState = OfflineBannerState.NetworkOffline)
     }
     val body = when (state) {
         OfflineBannerState.NetworkOffline -> "You're offline \uD83D\uDE4F Your prayers and panchang are still available"
-        OfflineBannerState.BackendUnavailable -> "Internet is available, but backend services are not reachable right now."
+        OfflineBannerState.BackendUnavailable -> "Internet is available, but Divya cannot reach live temple updates right now."
     }
 
     Surface(

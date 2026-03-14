@@ -172,7 +172,7 @@ export function BillingPlansClient({
               {price ? (
                 <div className="billing-plan-card__price">
                   <strong>{formatBillingPrice(price)}</strong>
-                  <span>/{price.interval === "year" ? "year" : "month"}</span>
+                  <span>/{interval === "year" ? "year" : "month"}</span>
                 </div>
               ) : (
                 <div className="billing-plan-card__price">

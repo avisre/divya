@@ -44,13 +44,14 @@ function buildEnabledCatalog(): BillingCatalog {
 }
 
 describe("BillingPlansClient", () => {
-  it("shows annual pricing when the billing toggle changes", () => {
+  it("shows annual pricing with yearly labels when the billing toggle changes", () => {
     render(<BillingPlansClient catalog={buildEnabledCatalog()} authenticated={false} subscription={null} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Annual" }));
 
     expect(screen.getByText("£49.99")).toBeInTheDocument();
     expect(screen.getByText("£129.99")).toBeInTheDocument();
+    expect(screen.getAllByText("/year")).toHaveLength(2);
   });
 
   it("routes authenticated paid-plan checkout requests through the backend proxy", async () => {

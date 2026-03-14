@@ -72,6 +72,10 @@ function shouldSkipExpressBodyParsers(path = "") {
   return nextOwnedApiPrefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
+function shouldSkipExpressCors(path = "") {
+  return nextOwnedApiPrefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
 export function createBackendApp(config) {
   const app = express();
   if (config.trustProxy) {
@@ -97,7 +101,13 @@ export function createBackendApp(config) {
     })
   );
   app.use(compression());
-  app.use(cors(createCorsOptions(config)));
+  const corsMiddleware = cors(createCorsOptions(config));
+  app.use((req, res, next) => {
+    if (shouldSkipExpressCors(req.path)) {
+      return next();
+    }
+    return corsMiddleware(req, res, next);
+  });
   app.use(morgan(config.isProduction ? "combined" : "dev"));
   app.use("/api/webhooks", webhookRoutes);
   const jsonParser = express.json({ limit: "5mb" });

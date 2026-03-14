@@ -10,8 +10,11 @@ import { Puja } from "../models/Puja.js";
 import { Temple } from "../models/Temple.js";
 import { User } from "../models/User.js";
 import { UserProgress } from "../models/UserProgress.js";
+import { UserLotusPointEvent } from "../models/UserLotusPointEvent.js";
+import { UserMilestone } from "../models/UserMilestone.js";
 import { Panchang } from "../models/Panchang.js";
 import { PujaBooking } from "../models/PujaBooking.js";
+import { syncAuthoritativePrayerCatalog } from "./prayerCatalog.js";
 
 function priceVariants(usd) {
   return {
@@ -137,6 +140,8 @@ async function seed() {
     DeityLearningPath.deleteMany({}),
     PrayerSession.deleteMany({}),
     UserProgress.deleteMany({}),
+    UserLotusPointEvent.deleteMany({}),
+    UserMilestone.deleteMany({}),
     Panchang.deleteMany({}),
     PujaBooking.deleteMany({})
   ]);
@@ -219,7 +224,7 @@ async function seed() {
     },
     deity: bySlug["bhadra-bhagavathi"]._id,
     shortDescription: "A sacred Kerala Tantric temple where devotees across the diaspora offer prayers to Goddess Bhadra Bhagavathi.",
-    fullDescription: "Bhadra Bhagavathi Temple in Karunagapally is a spiritual anchor for Kerala families living abroad. Through Divya, devotees in New York, London, Toronto, Dubai, and Sydney can remain connected to the temple's daily rhythm, pujas, and blessings.",
+    fullDescription: "Bhadra Bhagavathi Temple in Karunagapally is a spiritual anchor for Kerala families living abroad. Through Prarthana, devotees in New York, London, Toronto, Dubai, and Sydney can remain connected to the temple's daily rhythm, pujas, and blessings.",
     significance: "Bhadra Bhagavathi is revered as the fierce and protective mother who removes fear, shields devotees from negativity, and receives vows offered with faith.",
     heroImage: null,
     images: [],
@@ -235,7 +240,7 @@ async function seed() {
     nriNote: "Pujas are performed by the temple's licensed Tantri at the sacred Bhadra Bhagavathi Temple in Karunagapally, Kerala. Our team coordinates directly with the temple to schedule your puja, perform the ritual in your name, and deliver a full HD video recording within 48 hours of completion."
   });
 
-  const prayers = await Prayer.insertMany([
+  await Prayer.insertMany([
     prayer("Mahishasura Mardini Stotram", "mahishasura-mardini", bySlug["bhadra-bhagavathi"]._id, {
       type: "stotram",
       difficulty: "intermediate",
@@ -409,7 +414,11 @@ async function seed() {
     })
   ]);
 
-  const prayerBySlug = Object.fromEntries(prayers.map((item) => [item.slug, item]));
+  const syncedPrayers = await syncAuthoritativePrayerCatalog({
+    Prayer,
+    deityBySlug: bySlug
+  });
+  const prayerBySlug = Object.fromEntries(syncedPrayers.map((item) => [item.slug, item]));
 
   await Festival.insertMany([
     {

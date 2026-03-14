@@ -1,11 +1,17 @@
 import Link from "next/link";
+import { OmMark } from "../ui/OmMark";
 
 export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
         <div>
-          <p className="eyebrow">Divya web</p>
+          <p className="eyebrow">
+            <span className="footer-mark" aria-hidden="true">
+              <OmMark />
+            </span>
+            Prarthana web
+          </p>
           <h2>Secure temple connection for everyday devotion.</h2>
           <p>
             Prayer guidance, panchang, puja waitlists, and sacred video delivery are all routed through the same protected account.

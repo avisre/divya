@@ -22,6 +22,27 @@ function cookieHeaderFrom(response) {
   return raw.map((entry) => entry.split(";")[0]).join("; ");
 }
 
+function mergeCookies(currentCookie, response) {
+  const nextCookie = cookieHeaderFrom(response);
+  if (!nextCookie) {
+    return currentCookie;
+  }
+
+  const cookieMap = new Map();
+  for (const source of [currentCookie, nextCookie]) {
+    for (const entry of String(source || "").split(";")) {
+      const trimmed = entry.trim();
+      if (!trimmed) continue;
+      const [key, ...valueParts] = trimmed.split("=");
+      cookieMap.set(key, valueParts.join("="));
+    }
+  }
+
+  return Array.from(cookieMap.entries())
+    .map(([key, value]) => `${key}=${value}`)
+    .join("; ");
+}
+
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, options);
   let payload = null;
@@ -39,6 +60,17 @@ async function fetchText(url, options = {}) {
   return { response, text };
 }
 
+async function getCsrfContext(cookie = "") {
+  const { response, payload } = await fetchJson(base + "/api/csrf", {
+    headers: cookie ? { cookie } : {}
+  });
+
+  return {
+    csrfToken: payload?.token || "",
+    cookie: mergeCookies(cookie, response)
+  };
+}
+
 async function main() {
   const publicRoutes = [
     "/",
@@ -46,7 +78,6 @@ async function main() {
     "/register",
     "/prayers",
     "/temple",
-    "/calendar",
     "/pujas",
     "/contact-us",
     "/privacy",
@@ -125,12 +156,18 @@ async function main() {
     timezone: "America/New_York"
   };
 
+  let csrfContext = await getCsrfContext();
+
   const register = await fetchJson(base + "/api/web-auth/register", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "x-csrf-token": csrfContext.csrfToken,
+      ...(csrfContext.cookie ? { cookie: csrfContext.cookie } : {})
+    },
     body: JSON.stringify(registerPayload)
   });
-  const registerCookie = cookieHeaderFrom(register.response);
+  const registerCookie = mergeCookies(csrfContext.cookie, register.response);
   add("register new user", register.response.ok && register.payload?.user?.email === email, {
     status: register.response.status,
     hasCookie: Boolean(registerCookie)
@@ -148,9 +185,13 @@ async function main() {
     }
   );
 
+  csrfContext = await getCsrfContext(registerCookie);
   const logout = await fetchJson(base + "/api/web-auth/logout", {
     method: "POST",
-    headers: registerCookie ? { cookie: registerCookie } : {}
+    headers: {
+      ...(csrfContext.cookie ? { cookie: csrfContext.cookie } : {}),
+      "x-csrf-token": csrfContext.csrfToken
+    }
   });
   const logoutCookie = cookieHeaderFrom(logout.response);
   add("logout", logout.response.ok, { status: logout.response.status });
@@ -162,9 +203,14 @@ async function main() {
     status: sessionAfterLogout.response.status
   });
 
+  csrfContext = await getCsrfContext();
   const login = await fetchJson(base + "/api/web-auth/login", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(csrfContext.cookie ? { cookie: csrfContext.cookie } : {}),
+      "x-csrf-token": csrfContext.csrfToken
+    },
     body: JSON.stringify({ email, password })
   });
   const loginCookie = cookieHeaderFrom(login.response);
@@ -209,11 +255,13 @@ async function main() {
     });
   }
 
+  csrfContext = await getCsrfContext(authCookie);
   const profileUpdate = await fetchJson(base + "/api/backend/users/profile", {
     method: "PUT",
     headers: {
       "content-type": "application/json",
-      ...(authCookie ? { cookie: authCookie } : {})
+      ...(csrfContext.cookie ? { cookie: csrfContext.cookie } : {}),
+      "x-csrf-token": csrfContext.csrfToken
     },
     body: JSON.stringify({
       preferredLanguage: "english",
@@ -230,11 +278,13 @@ async function main() {
   });
 
   if (firstPrayer?._id) {
+    csrfContext = await getCsrfContext(authCookie);
     const favorite = await fetchJson(base + `/api/backend/prayers/${firstPrayer._id}/favorite`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...(authCookie ? { cookie: authCookie } : {})
+        ...(csrfContext.cookie ? { cookie: csrfContext.cookie } : {}),
+        "x-csrf-token": csrfContext.csrfToken
       }
     });
     add("favorite prayer toggle", favorite.response.ok, {
@@ -242,11 +292,13 @@ async function main() {
     });
   }
 
+  csrfContext = await getCsrfContext(authCookie);
   const gothramSuggest = await fetchJson(base + "/api/backend/bookings/gothram-suggest", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      ...(authCookie ? { cookie: authCookie } : {})
+      ...(csrfContext.cookie ? { cookie: csrfContext.cookie } : {}),
+      "x-csrf-token": csrfContext.csrfToken
     },
     body: JSON.stringify({
       devoteeName: "Production Audit User",

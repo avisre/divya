@@ -20,6 +20,8 @@ services:
         sync: false
       - key: NEXT_PUBLIC_BACKEND_ORIGIN
         sync: false
+      - key: NEXT_PUBLIC_GA_MEASUREMENT_ID
+        value: G-MH6180XE50
       - key: BACKEND_API_BASE_URL
         sync: false
       - key: CORS_ORIGINS

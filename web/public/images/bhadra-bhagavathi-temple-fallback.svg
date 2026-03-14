@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Bhadra Bhagavathi Temple devotional illustration</title>
+  <desc id="desc">A non-photographic sacred illustration used until approved temple photography is available.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fdfaf5"/>
+      <stop offset="55%" stop-color="#f7f1e8"/>
+      <stop offset="100%" stop-color="#ede3d2"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fdf3dc" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#c8892a" stop-opacity="0.45"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="720" fill="url(#bg)"/>
+  <g fill="none" stroke="#ede3d2" stroke-width="2" opacity="0.7">
+    <circle cx="960" cy="120" r="140"/>
+    <circle cx="960" cy="120" r="108"/>
+    <circle cx="960" cy="120" r="76"/>
+  </g>
+  <g fill="#c8892a" opacity="0.12">
+    <circle cx="962" cy="124" r="110"/>
+  </g>
+  <g fill="#4a6741" opacity="0.08">
+    <path d="M72 646c114-45 232-64 354-58 126 6 250 36 372 34 120-2 233-24 330-64v162H72z"/>
+  </g>
+  <g transform="translate(248 116)">
+    <rect x="174" y="332" width="360" height="178" rx="18" fill="#1c1208" opacity="0.95"/>
+    <rect x="204" y="264" width="300" height="88" rx="12" fill="#3d2e14"/>
+    <rect x="218" y="236" width="272" height="34" rx="8" fill="#7a5f35" opacity="0.88"/>
+    <path d="M354 64l156 104H198L354 64z" fill="#c94b2a"/>
+    <path d="M354 16l210 140H144L354 16z" fill="#a83820"/>
+    <rect x="332" y="132" width="44" height="130" rx="12" fill="#f7f1e8"/>
+    <rect x="346" y="86" width="16" height="58" rx="8" fill="#c8892a"/>
+    <circle cx="354" cy="78" r="18" fill="url(#sun)"/>
+    <rect x="268" y="352" width="172" height="158" rx="12" fill="#f7f1e8"/>
+    <path d="M354 376c-22 20-32 42-32 66 0 22 12 44 32 64 20-20 32-42 32-64 0-24-10-46-32-66z" fill="#c94b2a"/>
+    <path d="M354 420c-10 10-16 22-16 34 0 12 6 22 16 32 10-10 16-20 16-32 0-12-6-24-16-34z" fill="#fdf3dc"/>
+    <g fill="#ede3d2" opacity="0.52">
+      <circle cx="202" cy="214" r="6"/>
+      <circle cx="506" cy="214" r="6"/>
+      <circle cx="160" cy="246" r="4"/>
+      <circle cx="548" cy="246" r="4"/>
+    </g>
+  </g>
+  <g fill="#7a5f35" opacity="0.82" font-family="Georgia, serif">
+    <text x="86" y="118" font-size="22" letter-spacing="4">BHADRA BHAGAVATHI TEMPLE</text>
+    <text x="86" y="154" font-size="16" opacity="0.78">Devotional illustration used until approved temple photography is available.</text>
+  </g>
+</svg>

@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 
 export function Section({
+  eyebrow,
   title,
   subtitle,
   children
 }: {
+  eyebrow?: string;
   title: string;
   subtitle?: string;
   children: ReactNode;
@@ -13,8 +15,9 @@ export function Section({
     <section className="section-card">
       <div className="section-card__header">
         <div>
-          <p className="section-label">{title}</p>
-          {subtitle ? <h2 className="section-title">{subtitle}</h2> : null}
+          {eyebrow ? <p className="section-label">{eyebrow}</p> : null}
+          <h2 className="section-title">{title}</h2>
+          {subtitle ? <p className="section-subtitle">{subtitle}</p> : null}
         </div>
       </div>
       <div className="section-card__content">{children}</div>

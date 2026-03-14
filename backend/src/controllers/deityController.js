@@ -1,5 +1,6 @@
 import { Deity } from "../models/Deity.js";
 import { DeityLearningPath } from "../models/DeityLearningPath.js";
+import { recordLearningModuleCompleted } from "../utils/gamification.js";
 
 function normalizeId(value) {
   if (!value) return "";
@@ -135,11 +136,19 @@ export async function completeLearningModule(req, res, next) {
     }
 
     await req.user.save();
+    const gamification = await recordLearningModuleCompleted({
+      user: req.user,
+      deity,
+      path,
+      module
+    });
+
     return res.json({
       success: true,
       deityId: deity._id,
       moduleId: module._id,
-      moduleOrder: module.order
+      moduleOrder: module.order,
+      gamification
     });
   } catch (error) {
     next(error);

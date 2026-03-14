@@ -22,6 +22,40 @@ const prayerSchema = new mongoose.Schema(
       default: "beginner"
     },
     durationMinutes: { type: Number, default: 5 },
+    plainStory: String,
+    wordGlossary: [
+      new mongoose.Schema(
+        {
+          word: { type: String, required: true },
+          transliteration: String,
+          meaning: String
+        },
+        { _id: false }
+      )
+    ],
+    familyContext: String,
+    beginnerTip: String,
+    nriRelevance: String,
+    verseCount: { type: Number, default: 0 },
+    verses: [
+      new mongoose.Schema(
+        {
+          number: { type: Number, required: true },
+          type: String,
+          script: String,
+          iast: String,
+          meaning: String,
+          audioStartSec: Number,
+          nameDevanagari: String,
+          nameIast: String,
+          meaningWordByWord: String,
+          meaningSummary: String
+        },
+        { _id: false }
+      )
+    ],
+    xpReward: { type: Number, default: 2 },
+    firstLinePreview: String,
     transliteration: String,
     content: {
       devanagari: String,
@@ -62,7 +96,16 @@ function buildContentChecksum(prayerDoc) {
     iast: prayerDoc.iast,
     content: prayerDoc.content,
     meaning: prayerDoc.meaning,
-    durationMinutes: prayerDoc.durationMinutes
+    durationMinutes: prayerDoc.durationMinutes,
+    plainStory: prayerDoc.plainStory,
+    wordGlossary: prayerDoc.wordGlossary,
+    familyContext: prayerDoc.familyContext,
+    beginnerTip: prayerDoc.beginnerTip,
+    nriRelevance: prayerDoc.nriRelevance,
+    verseCount: prayerDoc.verseCount,
+    verses: prayerDoc.verses,
+    xpReward: prayerDoc.xpReward,
+    firstLinePreview: prayerDoc.firstLinePreview
   };
   return crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }

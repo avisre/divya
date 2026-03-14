@@ -1,6 +1,7 @@
 import { PrayerSession } from "../models/PrayerSession.js";
 import { Prayer } from "../models/Prayer.js";
 import { User } from "../models/User.js";
+import { recordFamilyTeacher, recordSharedSessionCompleted } from "../utils/gamification.js";
 import mongoose from "mongoose";
 
 function randomCode() {
@@ -78,6 +79,13 @@ export async function createPrayerSession(req, res, next) {
         }
       ],
       expiresAt
+    });
+
+    const prayer = await Prayer.findById(resolvedPrayerId).select("slug");
+    await recordFamilyTeacher({
+      userId: req.user._id,
+      prayerId: resolvedPrayerId,
+      prayerSlug: prayer?.slug || ""
     });
 
     return res.status(201).json(session);
@@ -159,6 +167,11 @@ export async function endPrayerSession(req, res, next) {
         }
       }
     );
+    await recordSharedSessionCompleted({
+      participantIds,
+      prayerName: session.prayerId?.title?.en || "Shared prayer",
+      sessionId: session._id
+    });
 
     return res.json(session);
   } catch (error) {

@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { verifyCsrfRequest } from "../../../../lib/csrf";
 import { registerUser } from "../../../../lib/data";
 import { getSessionCookieOptions, SESSION_COOKIE } from "../../../../lib/session";
 
 export async function POST(request: Request) {
+  const csrfError = verifyCsrfRequest(request);
+  if (csrfError) {
+    return NextResponse.json({ message: csrfError }, { status: 403 });
+  }
+
   try {
     const payload = await request.json();
     const session = await registerUser(payload);

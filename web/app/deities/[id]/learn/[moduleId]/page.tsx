@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { Hero } from "../../../../../components/content/Hero";
 import { Section } from "../../../../../components/content/Section";
 import { Button } from "../../../../../components/ui/Button";
-import { getLearningModule } from "../../../../../lib/data";
-import { requireSession } from "../../../../../lib/session";
+import { FeatureTracker } from "../../../../../components/ux/FeatureTracker";
+import { resolveLearningModuleData } from "../../../../../lib/learning";
+import { getOptionalSession } from "../../../../../lib/session";
 
 export default async function LearningModulePage({
   params
@@ -11,29 +12,42 @@ export default async function LearningModulePage({
   params: Promise<{ id: string; moduleId: string }>;
 }) {
   const { id, moduleId } = await params;
-  const session = await requireSession(`/deities/${id}/learn/${moduleId}`);
-  const module = await getLearningModule(id, moduleId, session.token).catch(() => null);
+  const session = await getOptionalSession();
+  const moduleData = await resolveLearningModuleData(id, moduleId, session?.token || null);
 
-  if (!module) {
+  if (!moduleData) {
     notFound();
   }
 
   return (
     <div className="page-stack">
+      <FeatureTracker feature="learning" deityId={id} />
       <Hero
         eyebrow="Learning module"
-        title={module.module.title}
-        subtitle={module.module.keyTakeaway}
+        title={moduleData.module.title}
+        subtitle={moduleData.module.keyTakeaway}
       />
-      <Section title="Module content" subtitle="Read first, then move into the linked prayer if it is available.">
-        <div className="surface-card">
-          <div className="reading-panel">{module.module.content}</div>
-          <div className="card-actions">
-            {module.module.linkedPrayer ? <Button href={`/prayers/${module.module.linkedPrayer.slug}`}>Open linked prayer</Button> : null}
-            <Button tone="secondary" href={`/deities/${id}/learn`}>
-              Back to learning path
-            </Button>
+      <Section title="Module content" subtitle="The reading surface should feel like a long-form devotional text, with the linked prayer nearby rather than buried.">
+        <div className="content-grid content-grid--reading">
+          <div className="surface-card reading-panel reading-panel--module">
+            {moduleData.module.content}
           </div>
+          <aside className="surface-card linked-prayer-card">
+            <h3>Linked prayer</h3>
+            <p>
+              {moduleData.module.linkedPrayer
+                ? `${moduleData.module.linkedPrayer.title.en} is linked to this module.`
+                : "No linked prayer is attached to this module yet."}
+            </p>
+            <div className="card-actions">
+              {moduleData.module.linkedPrayer ? (
+                <Button href={`/prayers/${moduleData.module.linkedPrayer.slug}`}>Open linked prayer</Button>
+              ) : null}
+              <Button tone="secondary" href={`/deities/${id}/learn`}>
+                Back to learning path
+              </Button>
+            </div>
+          </aside>
         </div>
       </Section>
     </div>

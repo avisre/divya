@@ -24,7 +24,12 @@ export function SupportForm({
 }) {
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
-  const { register, handleSubmit } = useForm<SupportValues>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors }
+  } = useForm<SupportValues>({
     defaultValues: {
       name: defaults?.name || "",
       email: defaults?.email || "",
@@ -34,6 +39,7 @@ export function SupportForm({
       bookingReference: defaults?.bookingReference || ""
     }
   });
+  const isValid = Boolean(watch("name")?.trim() && watch("email")?.trim() && watch("subject")?.trim() && watch("message")?.trim());
 
   return (
     <form
@@ -52,7 +58,7 @@ export function SupportForm({
               }
             })
           });
-          setStatus("Support request submitted. We will follow up by email.");
+          setStatus("Support request submitted. We will respond within 24 hours.");
         } catch (error) {
           setStatus(error instanceof Error ? error.message : "Unable to send your request.");
         } finally {
@@ -62,36 +68,51 @@ export function SupportForm({
     >
       <label className="field">
         <span>Name</span>
-        <input {...register("name")} />
+        <input {...register("name", { required: "Name is required." })} />
+        {errors.name ? <small className="field__error">{errors.name.message}</small> : null}
       </label>
       <label className="field">
         <span>Email</span>
-        <input type="email" {...register("email")} />
+        <input
+          type="email"
+          {...register("email", {
+            required: "Email is required.",
+            pattern: {
+              value: /\S+@\S+\.\S+/,
+              message: "Enter a valid email address."
+            }
+          })}
+        />
+        {errors.email ? <small className="field__error">{errors.email.message}</small> : null}
       </label>
       <label className="field">
         <span>Category</span>
         <select {...register("category")}>
-          <option value="booking_help">Booking help</option>
-          <option value="gothram_help">Gothram help</option>
-          <option value="technical_issue">Technical issue</option>
-          <option value="video_help">Video help</option>
           <option value="general">General</option>
+          <option value="booking_help">Booking question</option>
+          <option value="gothram_help">Gothram help</option>
+          <option value="technical_issue">Technical</option>
+          <option value="video_help">Video delivery</option>
+          <option value="other">Other</option>
         </select>
       </label>
       <label className="field">
         <span>Subject</span>
-        <input {...register("subject")} />
+        <input {...register("subject", { required: "Subject is required." })} />
+        {errors.subject ? <small className="field__error">{errors.subject.message}</small> : null}
       </label>
       <label className="field field--full">
         <span>Message</span>
-        <textarea rows={6} {...register("message")} />
+        <textarea rows={6} {...register("message", { required: "Message is required." })} />
+        {errors.message ? <small className="field__error">{errors.message.message}</small> : null}
       </label>
       <label className="field">
         <span>Booking reference</span>
         <input {...register("bookingReference")} />
       </label>
+      {mode === "public" ? <p className="muted">Typical response time: within 24 hours.</p> : null}
       {status ? <StatusStrip tone="success">{status}</StatusStrip> : null}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || !isValid}>
         {pending ? "Submitting..." : "Submit request"}
       </Button>
     </form>

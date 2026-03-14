@@ -3,11 +3,24 @@ import { ApiError } from "../utils/ApiError.js";
 const stores = new Map();
 
 function getClientIp(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.length > 0) {
-    return forwarded.split(",")[0].trim();
+  try {
+    const forwarded = req.headers?.["x-forwarded-for"];
+    if (typeof forwarded === "string" && forwarded.length > 0) {
+      return forwarded.split(",")[0].trim();
+    }
+
+    if (req?.ip) return req.ip;
+
+    const socket = req?.socket || null;
+    if (socket?.remoteAddress) return socket.remoteAddress;
+
+    const connection = req?.connection || null;
+    if (connection?.remoteAddress) return connection.remoteAddress;
+
+    return "unknown";
+  } catch {
+    return "unknown";
   }
-  return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
 function getStore(key) {

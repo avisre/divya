@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { OAuth2Client } from "google-auth-library";
 import { User } from "../models/User.js";
 import { ApiError, createValidationError } from "../utils/ApiError.js";
+import { sendPasswordResetEmail } from "../utils/email.js";
 
 dotenv.config();
 const googleTokenClient = new OAuth2Client();
@@ -36,6 +37,19 @@ function normalizeTimezone(value) {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
   return trimmed.length ? trimmed : undefined;
+}
+
+function normalizeEmail(value) {
+  if (typeof value !== "string") return "";
+  return value.toLowerCase().trim();
+}
+
+function buildPasswordResetToken() {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+  return { rawToken, hashedToken, expiresAt };
 }
 
 function buildBackendBaseUrl(req) {
@@ -208,7 +222,7 @@ async function verifyGoogleIdTokenForMobile(idToken) {
     provider: "google",
     providerId: String(payload.sub || ""),
     email,
-    name: String(payload.name || email.split("@")[0] || "Divya Devotee"),
+    name: String(payload.name || email.split("@")[0] || "Prarthana Devotee"),
     picture: payload.picture || null
   };
 }
@@ -399,7 +413,7 @@ export async function register(req, res, next) {
       throw createValidationError("Password must be at least 8 characters");
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
     const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
       throw new ApiError("CONFLICT", "Email already in use");
@@ -430,8 +444,7 @@ export async function login(req, res, next) {
     if (!password || typeof password !== "string") {
       throw createValidationError("Password is required");
     }
-
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: normalizeEmail(email) });
     if (!user) {
       throw new ApiError("AUTH_REQUIRED", "Invalid credentials");
     }
@@ -442,6 +455,75 @@ export async function login(req, res, next) {
 
     const token = signToken(user);
     return res.json({ token, user: serializeUser(user) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function forgotPassword(req, res, next) {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!email) {
+      throw createValidationError("Email is required");
+    }
+
+    const genericResponse = {
+      message: "If an account exists for that email, a password reset link has been sent."
+    };
+
+    const user = await User.findOne({ email, isGuest: false });
+    if (!user) {
+      return res.json(genericResponse);
+    }
+
+    const { rawToken, hashedToken, expiresAt } = buildPasswordResetToken();
+    user.passwordResetTokenHash = hashedToken;
+    user.passwordResetExpiresAt = expiresAt;
+    await user.save();
+
+    const resetUrl = new URL(`${getWebAppBaseUrl()}/reset-password`);
+    resetUrl.searchParams.set("token", rawToken);
+
+    await sendPasswordResetEmail({
+      to: user.email,
+      name: user.name,
+      resetUrl: resetUrl.toString()
+    });
+
+    return res.json(genericResponse);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const token = String(req.body?.token || "").trim();
+    const password = String(req.body?.password || "");
+
+    if (!token) {
+      throw createValidationError("Reset token is required");
+    }
+    if (password.length < 8) {
+      throw createValidationError("Password must be at least 8 characters");
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await User.findOne({
+      passwordResetTokenHash: hashedToken,
+      passwordResetExpiresAt: { $gt: new Date() }
+    });
+
+    if (!user) {
+      throw new ApiError("AUTH_REQUIRED", "This reset link is invalid or has expired.");
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.passwordResetTokenHash = null;
+    user.passwordResetExpiresAt = null;
+    await user.save();
+
+    return res.json({ message: "Password updated successfully." });
   } catch (error) {
     next(error);
   }

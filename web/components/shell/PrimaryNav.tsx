@@ -16,7 +16,9 @@ export function PrimaryNav({
       {links.map((link) => {
         const isActive =
           pathname === link.href ||
-          (link.href !== "/" && pathname.startsWith(`${link.href}/`));
+          (link.href !== "/" && pathname.startsWith(`${link.href}/`)) ||
+          (link.href === "/sessions/create" &&
+            (pathname.startsWith("/sessions") || pathname.startsWith("/shared-prayer")));
 
         return (
           <Link

@@ -2,6 +2,7 @@ package com.divya.android.app
 
 import android.content.Context
 import android.util.Log
+import com.divya.analytics.GoogleAnalyticsBridge
 import com.divya.android.notifications.DivyaNotificationCenter
 import com.divya.android.media.PrayerAudioPlayer
 import com.divya.data.models.Prayer
@@ -53,6 +54,7 @@ object DivyaRuntime {
         val detectedTimezone = TimeZone.getDefault().id.ifBlank { "UTC" }
         sessionStore.saveDetectedTimezone(detectedTimezone)
         DivyaNotificationCenter.ensureChannels(applicationContext)
+        GoogleAnalyticsBridge.initialize(applicationContext)
 
         CrashReporter.install { throwable, metadata ->
             sendCrashBlocking(
@@ -311,15 +313,18 @@ object DivyaRuntime {
 
     fun signOut() {
         runCatching { PrayerAudioPlayer.clearCurrent(reason = "sign_out") }
+        GoogleAnalyticsBridge.identify(null)
         clearSession()
         trackEvent("logout_completed")
     }
 
     fun trackScreen(route: String) {
+        GoogleAnalyticsBridge.trackScreen(route)
         trackEvent("screen_view", mapOf("route" to route))
     }
 
     fun trackEvent(name: String, properties: Map<String, Any?> = emptyMap()) {
+        GoogleAnalyticsBridge.trackEvent(name, properties)
         appScope.launch {
             runCatching {
                 backendClient.trackEvent(_sessionState.value.token, name, properties)
@@ -415,6 +420,14 @@ object DivyaRuntime {
         val user = session.user
         if (!token.isNullOrBlank() && user != null) {
             sessionStore.save(token, user)
+            GoogleAnalyticsBridge.identify(user.id)
+            GoogleAnalyticsBridge.setUserProperties(
+                mapOf(
+                    "role" to user.role,
+                    "country" to user.country,
+                    "timezone" to user.timezone,
+                ),
+            )
         }
     }
 
@@ -423,6 +436,7 @@ object DivyaRuntime {
         if (::sessionStore.isInitialized) {
             sessionStore.clear()
         }
+        GoogleAnalyticsBridge.identify(null)
     }
 
     private fun requireToken(): String {

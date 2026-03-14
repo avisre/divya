@@ -8,7 +8,12 @@
     "build": "next build",
     "start": "node server.mjs",
     "start:next": "next start",
-    "lint": "next lint"
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "qa:responsive": "node scripts/responsive_production_audit.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -22,9 +27,19 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.15.30",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
-    "typescript": "^5.8.3"
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.1.6",
+    "jest-axe": "^10.0.0",
+    "jsdom": "^28.1.0",
+    "tinyexec": "^1.0.2",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.0"
   }
 }

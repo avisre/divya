@@ -137,7 +137,7 @@ export function BillingPlansClient({
             <p className="muted">
               Status: {subscriptionStatusLabel(subscription)}
               {subscription?.cancelAtPeriodEnd && subscription?.currentPeriodEnd
-                ? ` · ends after ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US")}`
+                ? ` · ends after ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-GB")}`
                 : ""}
             </p>
           </div>
@@ -176,7 +176,7 @@ export function BillingPlansClient({
                 </div>
               ) : (
                 <div className="billing-plan-card__price">
-                  <strong>$0.00</strong>
+                  <strong>£0.00</strong>
                   <span>to begin</span>
                 </div>
               )}

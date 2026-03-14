@@ -69,8 +69,12 @@ export function PrayerAudioPlayer({
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
-      await audio.play();
-      setIsPlaying(true);
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch {
+        setIsPlaying(false);
+      }
       return;
     }
     audio.pause();

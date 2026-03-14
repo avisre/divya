@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sendJson } from "../../lib/client-api";
 import { cn } from "../../lib/cn";
+import { resolvePlayableAudioUrl } from "../../lib/media";
 import { getPrayerDifficultyMeta } from "../../lib/presentation";
 import type {
   GamificationResult,
@@ -106,7 +107,12 @@ export function PrayerDetailClient({
   const [activeVerseNumber, setActiveVerseNumber] = useState<number | null>(null);
   const readingRef = useRef<HTMLDivElement>(null);
   const openedRef = useRef(false);
-  const audioSrc = audio?.streamUrl || audio?.url || prayer.audioUrl || "";
+  const audioSrc = resolvePlayableAudioUrl(
+    audio?.streamUrl,
+    audio?.url,
+    audio?.directUrl,
+    prayer.audioUrl
+  );
   const { announceGamification, markPrayer60s, markPrayerOpened, state } = useUx();
   const difficulty = getPrayerDifficultyMeta(prayer.difficulty);
   const verses = useMemo(() => buildVerses(prayer), [prayer]);

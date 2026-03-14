@@ -26,14 +26,16 @@ const devanagariFont = Noto_Serif_Devanagari({
   subsets: ["devanagari"],
   variable: "--font-devanagari",
   weight: ["400", "500"],
-  display: "swap"
+  display: "swap",
+  preload: false
 });
 
 const malayalamFont = Noto_Serif_Malayalam({
   subsets: ["malayalam"],
   variable: "--font-malayalam",
   weight: ["400", "500"],
-  display: "swap"
+  display: "swap",
+  preload: false
 });
 
 export const metadata: Metadata = {

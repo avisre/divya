@@ -7,12 +7,22 @@ function buildCsp() {
   const connectSrc = [
     "'self'",
     BACKEND_ORIGIN,
+    "https://www.google-analytics.com",
+    "https://*.google-analytics.com",
+    "https://www.googletagmanager.com",
     "https:",
     "wss:"
   ];
 
+  const scriptSrc = [
+    "'self'",
+    "'unsafe-inline'",
+    "https://www.googletagmanager.com"
+  ];
+
   if (!IS_PRODUCTION) {
     connectSrc.push("http://localhost:*", "http://127.0.0.1:*", "ws://localhost:*", "ws://127.0.0.1:*");
+    scriptSrc.push("'unsafe-eval'");
   }
 
   return [
@@ -25,7 +35,7 @@ function buildCsp() {
     "font-src 'self' https://fonts.gstatic.com data:",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     `connect-src ${connectSrc.join(" ")}`,
-    `script-src 'self' 'unsafe-inline'${IS_PRODUCTION ? "" : " 'unsafe-eval'"}`,
+    `script-src ${scriptSrc.join(" ")}`,
     "object-src 'none'",
     "worker-src 'self' blob:"
   ].join("; ");
@@ -61,4 +71,3 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|favicon.svg|apple-touch-icon.png|og-image.png).*)"]
 };
-

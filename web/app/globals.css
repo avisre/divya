@@ -2748,8 +2748,13 @@ select:focus {
 }
 
 .footer-mark {
-  display: inline-block;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
   margin-right: 8px;
+  vertical-align: text-bottom;
   color: var(--vermilion-400);
   font-family: var(--font-devanagari), serif;
 }

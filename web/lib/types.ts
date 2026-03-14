@@ -86,6 +86,7 @@ export type Prayer = {
 export type PrayerAudioMetadata = {
   prayerId: string;
   url: string | null;
+  directUrl?: string | null;
   streamUrl: string | null;
   codec: string;
   durationSeconds: number;

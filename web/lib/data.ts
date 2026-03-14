@@ -65,7 +65,7 @@ export async function interactWithPrayer(
   });
 }
 
-export async function getPrayerAudio(id: string, token: string) {
+export async function getPrayerAudio(id: string, token?: string | null) {
   return fetchBackend<PrayerAudioMetadata>(`/prayers/${id}/audio`, { token });
 }
 

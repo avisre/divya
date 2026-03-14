@@ -33,7 +33,7 @@ router.get("/catalog/version", getPrayerCatalogVersion);
 router.get("/availability", authOptional, getPrayerAvailability);
 router.get("/entitlements", authOptional, getPrayerEntitlements);
 router.get("/favorites", auth, getFavorites);
-router.get("/:id/audio", auth, getPrayerAudioMetadata);
+router.get("/:id/audio", authOptional, getPrayerAudioMetadata);
 router.get("/:id/audio/stream", authOptional, streamPrayerAudio);
 router.get("/:id", getPrayerById);
 router.post("/:id/open", auth, prayerMutationLimiter, openPrayer);

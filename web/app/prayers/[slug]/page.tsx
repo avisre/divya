@@ -47,9 +47,7 @@ export default async function PrayerDetailPage({
     notFound();
   }
 
-  const audio = session?.token
-    ? await getPrayerAudio(prayer._id, session.token).catch(() => null)
-    : null;
+  const audio = await getPrayerAudio(prayer._id, session?.token ?? null).catch(() => null);
   const prayerType = getPrayerTypeMeta(prayer.type);
 
   return (

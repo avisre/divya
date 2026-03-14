@@ -1,4 +1,4 @@
-const BASE_CURRENCY = "usd";
+const BASE_CURRENCY = "gbp";
 
 export const SUBSCRIPTION_INTERVALS = {
   MONTH: "month",

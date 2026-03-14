@@ -21,6 +21,6 @@ describe("subscription plans", () => {
     const price = bhakt ? getBillingPrice(bhakt, "month") : null;
 
     expect(price).not.toBeNull();
-    expect(formatBillingPrice(price!)).toBe("$4.99");
+    expect(formatBillingPrice(price!)).toBe("£4.99");
   });
 });

@@ -49,8 +49,8 @@ describe("BillingPlansClient", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Annual" }));
 
-    expect(screen.getByText("$49.99")).toBeInTheDocument();
-    expect(screen.getByText("$129.99")).toBeInTheDocument();
+    expect(screen.getByText("£49.99")).toBeInTheDocument();
+    expect(screen.getByText("£129.99")).toBeInTheDocument();
   });
 
   it("routes authenticated paid-plan checkout requests through the backend proxy", async () => {

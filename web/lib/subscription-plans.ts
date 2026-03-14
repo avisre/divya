@@ -30,7 +30,7 @@ const planDefinitions: BillingPlan[] = [
     prices: {
       month: {
         amountCents: 499,
-        currency: "usd",
+        currency: "gbp",
         interval: "month",
         envKey: "STRIPE_BHAKT_MONTHLY_PRICE_ID",
         lookupKey: "prarthana_bhakt_monthly",
@@ -39,7 +39,7 @@ const planDefinitions: BillingPlan[] = [
       },
       year: {
         amountCents: 4999,
-        currency: "usd",
+        currency: "gbp",
         interval: "year",
         envKey: "STRIPE_BHAKT_ANNUAL_PRICE_ID",
         lookupKey: "prarthana_bhakt_annual",
@@ -65,7 +65,7 @@ const planDefinitions: BillingPlan[] = [
     prices: {
       month: {
         amountCents: 1299,
-        currency: "usd",
+        currency: "gbp",
         interval: "month",
         envKey: "STRIPE_SEVA_MONTHLY_PRICE_ID",
         lookupKey: "prarthana_seva_monthly",
@@ -74,7 +74,7 @@ const planDefinitions: BillingPlan[] = [
       },
       year: {
         amountCents: 12999,
-        currency: "usd",
+        currency: "gbp",
         interval: "year",
         envKey: "STRIPE_SEVA_ANNUAL_PRICE_ID",
         lookupKey: "prarthana_seva_annual",
@@ -95,7 +95,7 @@ export function buildStaticBillingCatalog(): BillingCatalog {
 }
 
 export function formatBillingPrice(price: BillingPriceOption) {
-  const formatter = new Intl.NumberFormat("en-US", {
+  const formatter = new Intl.NumberFormat("en-GB", {
     style: "currency",
     currency: price.currency.toUpperCase(),
     minimumFractionDigits: 2

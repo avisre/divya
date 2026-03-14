@@ -4,6 +4,7 @@ import { SITE_URL } from "../lib/env";
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     "",
+    "/plans",
     "/prayers",
     "/temple",
     "/pujas",

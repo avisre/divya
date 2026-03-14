@@ -16,6 +16,7 @@ import nakshatraRoutes from "./routes/nakshatra.js";
 import templeRoutes from "./routes/temple.js";
 import pujaRoutes from "./routes/pujas.js";
 import bookingRoutes from "./routes/bookings.js";
+import billingRoutes from "./routes/billing.js";
 import userRoutes from "./routes/users.js";
 import adminRoutes from "./routes/admin.js";
 import observabilityRoutes from "./routes/observability.js";
@@ -156,6 +157,7 @@ export function createBackendApp(config) {
   app.use("/api/temple", templeRoutes);
   app.use("/api/pujas", pujaRoutes);
   app.use("/api/bookings", bookingRoutes);
+  app.use("/api/billing", billingRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/admin", adminRoutes);
   if (config.enableObservabilityIngest) {

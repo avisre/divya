@@ -40,6 +40,18 @@ services:
         sync: false
       - key: DISABLE_PAYMENTS
         value: "true"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_BHAKT_MONTHLY_PRICE_ID
+        sync: false
+      - key: STRIPE_BHAKT_ANNUAL_PRICE_ID
+        sync: false
+      - key: STRIPE_SEVA_MONTHLY_PRICE_ID
+        sync: false
+      - key: STRIPE_SEVA_ANNUAL_PRICE_ID
+        sync: false
       - key: ENABLE_SIMULATOR_API
         value: "false"
       - key: ENABLE_OBSERVABILITY_INGEST

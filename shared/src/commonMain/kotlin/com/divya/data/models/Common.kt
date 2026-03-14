@@ -30,6 +30,14 @@ data class SubscriptionInfo(
     val revenueCatId: String? = null,
     val expiresAt: String? = null,
     val platform: String? = null,
+    val priceId: String? = null,
+    val stripeCustomerId: String? = null,
+    val stripeSubscriptionId: String? = null,
+    val status: String? = null,
+    val interval: String? = null,
+    val currentPeriodStart: String? = null,
+    val currentPeriodEnd: String? = null,
+    val cancelAtPeriodEnd: Boolean = false,
 )
 
 @Serializable
@@ -43,4 +51,3 @@ data class StreakInfo(
 data class ApiMessage(
     val message: String,
 )
-

@@ -39,6 +39,8 @@ export function SiteHeader({ user }: { user: UserSession | null }) {
                 ? "Puja"
                 : pathname.startsWith("/pujas")
                   ? "Pujas"
+                  : pathname.startsWith("/plans")
+                    ? "Plans"
                   : pathname.startsWith("/sessions") || pathname.startsWith("/shared-prayer")
                       ? "Sessions"
                       : pathname.startsWith("/bookings")
@@ -82,6 +84,9 @@ export function SiteHeader({ user }: { user: UserSession | null }) {
                 </Link>
                 <Link href="/profile" className="account-menu__link">
                   My profile
+                </Link>
+                <Link href="/plans" className="account-menu__link">
+                  Plans & billing
                 </Link>
                 <Link href="/contact" className="account-menu__link">
                   Account support

@@ -10,6 +10,7 @@ import { Button } from "../components/ui/Button";
 import { getFeaturedPrayers, getPanchangToday, getPujas, getTemple } from "../lib/data";
 import { getPanchangTone, getTempleVisual, OM_SYMBOL } from "../lib/presentation";
 import { buildOrganizationSchema, buildPublicMetadata } from "../lib/seo";
+import { buildStaticBillingCatalog, formatBillingPrice, getBillingPrice } from "../lib/subscription-plans";
 
 export const metadata: Metadata = buildPublicMetadata({
   title: "Prarthana | Hindu prayer app for families abroad",
@@ -28,6 +29,7 @@ export default async function LandingPage() {
 
   const templeVisual = getTempleVisual(temple);
   const panchangTone = panchang ? getPanchangTone(panchang) : "neutral";
+  const planPreview = buildStaticBillingCatalog().plans;
 
   return (
     <div className="page-stack">
@@ -42,6 +44,9 @@ export default async function LandingPage() {
             <Button href="/register">Begin with Prarthana</Button>
             <Button tone="secondary" href="/login">
               Sign in
+            </Button>
+            <Button tone="ghost" href="/plans">
+              Compare plans
             </Button>
           </>
         }
@@ -105,6 +110,39 @@ export default async function LandingPage() {
           {pujas.slice(0, 3).map((puja) => (
             <PujaCard key={puja._id} puja={puja} />
           ))}
+        </div>
+      </Section>
+
+      <Section
+        title="Membership tiers"
+        subtitle="Start free, move to Bhakt for daily rhythm, or choose Seva when your family wants the full sacred archive."
+      >
+        <div className="billing-grid billing-grid--preview">
+          {planPreview.map((plan) => {
+            const monthly = getBillingPrice(plan, "month");
+            return (
+              <article key={plan.tier} className="surface-card billing-plan-card">
+                <div className="surface-card__meta">
+                  <span className="pill pill--soft">{plan.name}</span>
+                  {plan.badge ? <span className="muted">{plan.badge}</span> : null}
+                </div>
+                <h3>{plan.name}</h3>
+                <p>{plan.summary}</p>
+                <div className="billing-plan-card__price">
+                  <strong>{monthly ? formatBillingPrice(monthly) : "$0.00"}</strong>
+                  <span>{monthly ? "/month" : "to begin"}</span>
+                </div>
+                <ul className="card-list billing-plan-card__perks">
+                  {plan.perks.slice(0, 3).map((perk) => (
+                    <li key={perk}>{perk}</li>
+                  ))}
+                </ul>
+              </article>
+            );
+          })}
+        </div>
+        <div className="card-actions">
+          <Button href="/plans">View all plans</Button>
         </div>
       </Section>
 

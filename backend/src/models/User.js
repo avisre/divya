@@ -41,9 +41,34 @@ const subscriptionSchema = new mongoose.Schema(
     },
     revenueCatId: String,
     expiresAt: Date,
+    priceId: String,
+    stripeCustomerId: String,
+    stripeSubscriptionId: String,
+    status: {
+      type: String,
+      enum: [
+        "inactive",
+        "trialing",
+        "active",
+        "past_due",
+        "unpaid",
+        "canceled",
+        "incomplete",
+        "incomplete_expired"
+      ],
+      default: "inactive"
+    },
+    interval: {
+      type: String,
+      enum: ["month", "year", null],
+      default: null
+    },
+    currentPeriodStart: Date,
+    currentPeriodEnd: Date,
+    cancelAtPeriodEnd: { type: Boolean, default: false },
     platform: {
       type: String,
-      enum: ["ios", "android"]
+      enum: ["ios", "android", "web"]
     }
   },
   { _id: false }

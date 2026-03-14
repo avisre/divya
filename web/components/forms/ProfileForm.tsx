@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { sendJson } from "../../lib/client-api";
 import { Button } from "../ui/Button";
@@ -13,20 +13,35 @@ type ProfileValues = {
   timezone: string;
   morningTime: string;
   eveningTime: string;
+  morningEnabled: boolean;
+  eveningEnabled: boolean;
+  festivalAlerts: boolean;
+  reengagementEmails: boolean;
 };
 
 export function ProfileForm({ user }: { user: UserSession }) {
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState("default");
   const { register, handleSubmit } = useForm<ProfileValues>({
     defaultValues: {
       preferredLanguage: user.preferredLanguage || "english",
       country: user.country || "US",
       timezone: user.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       morningTime: user.prayerReminders?.morningTime || "07:00",
-      eveningTime: user.prayerReminders?.eveningTime || "19:00"
+      eveningTime: user.prayerReminders?.eveningTime || "19:00",
+      morningEnabled: user.prayerReminders?.morningEnabled ?? true,
+      eveningEnabled: user.prayerReminders?.eveningEnabled ?? true,
+      festivalAlerts: user.prayerReminders?.festivalAlerts ?? true,
+      reengagementEmails: user.prayerReminders?.reengagementEmails ?? true
     }
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setNotificationPermission(window.Notification.permission);
+    }
+  }, []);
 
   return (
     <form
@@ -43,8 +58,12 @@ export function ProfileForm({ user }: { user: UserSession }) {
               timezone: values.timezone,
               prayerReminders: {
                 ...(user.prayerReminders || {}),
+                morningEnabled: values.morningEnabled,
                 morningTime: values.morningTime,
-                eveningTime: values.eveningTime
+                eveningEnabled: values.eveningEnabled,
+                eveningTime: values.eveningTime,
+                festivalAlerts: values.festivalAlerts,
+                reengagementEmails: values.reengagementEmails
               }
             })
           });
@@ -76,6 +95,50 @@ export function ProfileForm({ user }: { user: UserSession }) {
         <span>Evening prayer time</span>
         <input {...register("eveningTime")} />
       </label>
+      <label className="catalog-checkbox">
+        <input type="checkbox" {...register("morningEnabled")} />
+        <span>Morning reminders</span>
+      </label>
+      <label className="catalog-checkbox">
+        <input type="checkbox" {...register("eveningEnabled")} />
+        <span>Evening reminders</span>
+      </label>
+      <label className="catalog-checkbox">
+        <input type="checkbox" {...register("festivalAlerts")} />
+        <span>Festival alerts</span>
+      </label>
+      <label className="catalog-checkbox">
+        <input type="checkbox" {...register("reengagementEmails")} />
+        <span>7-day re-engagement email</span>
+      </label>
+      <div className="surface-card profile-form__notification field--full">
+        <strong>Browser reminders</strong>
+        <p>
+          Ask for browser notification permission here, not on first load. Email reminders continue even if this device does not support browser push.
+        </p>
+        <p className="muted">Permission: {notificationPermission}</p>
+        <div className="card-actions">
+          <Button
+            type="button"
+            tone="secondary"
+            onClick={async () => {
+              if (typeof window === "undefined" || !("Notification" in window)) {
+                setStatus("Browser notifications are not supported on this device.");
+                return;
+              }
+              const permission = await window.Notification.requestPermission();
+              setNotificationPermission(permission);
+              setStatus(
+                permission === "granted"
+                  ? "Browser notifications enabled for this device."
+                  : "Browser notifications remain disabled."
+              );
+            }}
+          >
+            Enable browser reminders
+          </Button>
+        </div>
+      </div>
       {status ? <StatusStrip tone="success">{status}</StatusStrip> : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Saving..." : "Save settings"}

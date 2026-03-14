@@ -1,8 +1,10 @@
 import { UserProgress } from "../models/UserProgress.js";
 import { ContactRequest } from "../models/ContactRequest.js";
 import { generateMilestoneCertificateUrl } from "../utils/generateCertificate.js";
+import { buildGamificationSnapshot, recordPrayerCompleted } from "../utils/gamification.js";
 import { sendContactRequestAlertEmail } from "../utils/email.js";
 import { createValidationError } from "../utils/ApiError.js";
+import { Prayer } from "../models/Prayer.js";
 
 const STREAK_MILESTONES = [7, 21, 108, 365];
 
@@ -94,8 +96,16 @@ function serializeUserProfile(user) {
   };
 }
 
-export async function getProfile(req, res) {
-  return res.json(serializeUserProfile(req.user));
+export async function getProfile(req, res, next) {
+  try {
+    const gamification = await buildGamificationSnapshot(req.user._id);
+    return res.json({
+      ...serializeUserProfile(req.user),
+      gamification
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function updateProfile(req, res, next) {
@@ -144,11 +154,8 @@ export async function saveOnboarding(req, res, next) {
 export async function prayerComplete(req, res, next) {
   try {
     const durationSeconds = Number(req.body.durationSeconds || 0);
-    req.user.completedPrayers.push({
-      prayerId: req.body.prayerId,
-      completedAt: new Date(),
-      durationSeconds
-    });
+    const prayerId = String(req.body.prayerId || "").trim();
+    const prayer = prayerId ? await Prayer.findById(prayerId) : null;
 
     const now = new Date();
     const timezone = req.user.timezone || "UTC";
@@ -219,7 +226,6 @@ export async function prayerComplete(req, res, next) {
     await UserProgress.findOneAndUpdate(
       { user: req.user._id },
       {
-        $inc: { prayersCompleted: 1, minutesPrayed: Math.ceil(durationSeconds / 60) },
         streakDays: req.user.streak.current,
         longestStreakDays: req.user.streak.longest,
         lastPrayerAt: now,
@@ -228,10 +234,25 @@ export async function prayerComplete(req, res, next) {
       { upsert: true }
     );
 
+    const gamification = prayer
+      ? await recordPrayerCompleted({
+          user: req.user,
+          prayer,
+          durationSeconds,
+          completedVia: String(req.body?.completedVia || "legacy")
+        })
+      : {
+          pointsAwarded: 0,
+          milestonesEarned: [],
+          tierUpgrade: null,
+          stats: await buildGamificationSnapshot(req.user._id)
+        };
+
     return res.json({
       streak: req.user.streak,
       graceApplied,
-      milestoneReached
+      milestoneReached,
+      gamification
     });
   } catch (error) {
     next(error);
@@ -262,8 +283,17 @@ export async function useStreakGrace(req, res, next) {
 
 export async function getStats(req, res, next) {
   try {
-    const progress = await UserProgress.findOne({ user: req.user._id });
-    return res.json(progress || { prayersCompleted: 0, minutesPrayed: 0, streakDays: 0 });
+    const progress = await UserProgress.findOne({ user: req.user._id }).lean();
+    const gamification = await buildGamificationSnapshot(req.user._id);
+    return res.json({
+      prayersCompleted: Number(progress?.prayersCompleted || 0),
+      minutesPrayed: Number(progress?.minutesPrayed || 0),
+      streakDays: Number(progress?.streakDays || 0),
+      longestStreakDays: Number(progress?.longestStreakDays || 0),
+      pujaBookingsCount: Number(progress?.pujaBookingsCount || 0),
+      videosWatched: Number(progress?.videosWatched || 0),
+      ...gamification
+    });
   } catch (error) {
     next(error);
   }

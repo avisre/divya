@@ -9,7 +9,6 @@ const publicRoutes = [
   ["/prayers", "Prayers"],
   ["/temple", "Temple"],
   ["/pujas", "Pujas"],
-  ["/calendar", "Calendar"],
   ["/contact-us", "Contact"],
   ["/privacy", "Privacy"],
   ["/terms", "Terms"]

@@ -4,7 +4,7 @@ import process from "node:process";
 import { chromium } from "@playwright/test";
 
 const siteUrl = "http://localhost:3000";
-const backendUrl = "http://localhost:5000/api";
+const backendUrl = process.env.BACKEND_API_BASE_URL || `${siteUrl}/api`;
 const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 const outputRoot = path.join(process.cwd(), "artifacts", "screenshots", `web_mobile_${stamp}`);
 const reportPath = path.join(outputRoot, "REPORT.md");
@@ -44,6 +44,15 @@ async function fetchJson(pathname) {
   return response.json();
 }
 
+async function getCsrfHeaders(request) {
+  const response = await request.get(`${siteUrl}/api/csrf`);
+  if (!response.ok()) {
+    throw new Error(`Unable to bootstrap CSRF: ${response.status()} ${await response.text()}`);
+  }
+  const payload = await response.json();
+  return { "x-csrf-token": payload.token };
+}
+
 async function loadRouteSeeds() {
   const [prayers, pujas, deities] = await Promise.all([
     fetchJson("/prayers?limit=3"),
@@ -60,7 +69,9 @@ async function loadRouteSeeds() {
 
 async function registerAccount(context) {
   const email = `web-audit-${Date.now()}@example.com`;
+  const csrfHeaders = await getCsrfHeaders(context.request);
   const response = await context.request.post(`${siteUrl}/api/auth/register`, {
+    headers: csrfHeaders,
     data: {
       name: "Web Audit Devotee",
       email,
@@ -134,7 +145,6 @@ function buildRoutes(seeds) {
     { key: "prayers", path: "/prayers" },
     { key: "temple", path: "/temple" },
     { key: "pujas", path: "/pujas" },
-    { key: "calendar", path: "/calendar" },
     { key: "contact-us", path: "/contact-us" }
   ];
 

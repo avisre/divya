@@ -9,15 +9,16 @@ import {
 
 const dev = process.env.NODE_ENV !== "production";
 const port = Number(process.env.PORT || 10000);
+const normalizedSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\s+/g, "").replace(/\/+$/, "");
 
-if (!process.env.BACKEND_API_BASE_URL && process.env.NEXT_PUBLIC_SITE_URL) {
-  process.env.BACKEND_API_BASE_URL = `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "")}/api`;
+if (!process.env.BACKEND_API_BASE_URL && normalizedSiteUrl) {
+  process.env.BACKEND_API_BASE_URL = `${normalizedSiteUrl}/api`;
 }
-if (!process.env.NEXT_PUBLIC_BACKEND_ORIGIN && process.env.NEXT_PUBLIC_SITE_URL) {
-  process.env.NEXT_PUBLIC_BACKEND_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "");
+if (!process.env.NEXT_PUBLIC_BACKEND_ORIGIN && normalizedSiteUrl) {
+  process.env.NEXT_PUBLIC_BACKEND_ORIGIN = normalizedSiteUrl;
 }
-if (!process.env.WEB_APP_URL && process.env.NEXT_PUBLIC_SITE_URL) {
-  process.env.WEB_APP_URL = process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "");
+if (!process.env.WEB_APP_URL && normalizedSiteUrl) {
+  process.env.WEB_APP_URL = normalizedSiteUrl;
 }
 
 const config = getServerConfig();
@@ -84,7 +85,7 @@ async function startUnifiedServer() {
     httpServer.once("error", reject);
     httpServer.listen(port, () => {
       httpServer.off("error", reject);
-      console.log(`Divya unified app listening on port ${port}`);
+      console.log(`Prarthana unified app listening on port ${port}`);
       console.log(`Environment: ${config.nodeEnv}`);
       console.log(`Serving web and API from one process`);
       resolve();

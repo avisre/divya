@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchBackendResponse } from "../../../../lib/backend";
+import { verifyCsrfRequest } from "../../../../lib/csrf";
 import { getAuthToken } from "../../../../lib/session";
 
 async function proxy(request: Request, params: { path: string[] }) {
@@ -33,13 +34,33 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
 }
 
 export async function POST(request: Request, context: { params: Promise<{ path: string[] }> }) {
+  const csrfError = verifyCsrfRequest(request);
+  if (csrfError) {
+    return NextResponse.json({ message: csrfError }, { status: 403 });
+  }
   return proxy(request, await context.params);
 }
 
 export async function PUT(request: Request, context: { params: Promise<{ path: string[] }> }) {
+  const csrfError = verifyCsrfRequest(request);
+  if (csrfError) {
+    return NextResponse.json({ message: csrfError }, { status: 403 });
+  }
   return proxy(request, await context.params);
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ path: string[] }> }) {
+  const csrfError = verifyCsrfRequest(request);
+  if (csrfError) {
+    return NextResponse.json({ message: csrfError }, { status: 403 });
+  }
+  return proxy(request, await context.params);
+}
+
+export async function PATCH(request: Request, context: { params: Promise<{ path: string[] }> }) {
+  const csrfError = verifyCsrfRequest(request);
+  if (csrfError) {
+    return NextResponse.json({ message: csrfError }, { status: 403 });
+  }
   return proxy(request, await context.params);
 }

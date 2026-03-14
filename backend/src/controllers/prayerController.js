@@ -2,6 +2,11 @@ import { Prayer } from "../models/Prayer.js";
 import { User } from "../models/User.js";
 import { PrayerCorrection } from "../models/PrayerCorrection.js";
 import { getDailyPrayerForUser } from "../utils/dailyPrayerEngine.js";
+import {
+  recordPrayerCompleted,
+  recordPrayerInteraction,
+  recordPrayerOpened
+} from "../utils/gamification.js";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import fs from "fs";
@@ -174,12 +179,27 @@ function buildPrayerQuery(query) {
       { "title.ml": regex },
       { transliteration: regex },
       { iast: regex },
+      { plainStory: regex },
+      { familyContext: regex },
+      { nriRelevance: regex },
+      { firstLinePreview: regex },
       { "content.devanagari": regex },
       { "content.english": regex },
       { tags: regex }
     ];
   }
   return mongoQuery;
+}
+
+async function findPrayerByIdentifier(identifier) {
+  const normalized = String(identifier || "").trim();
+  if (!normalized) return null;
+
+  const query = mongoose.isValidObjectId(normalized)
+    ? { $or: [{ _id: normalized }, { slug: normalized }, { externalId: normalized }] }
+    : { $or: [{ slug: normalized }, { externalId: normalized }] };
+
+  return Prayer.findOne(query).populate("deity");
 }
 
 export async function getPrayers(req, res, next) {
@@ -200,11 +220,7 @@ export async function getPrayers(req, res, next) {
 
 export async function getPrayerById(req, res, next) {
   try {
-    const identifier = String(req.params.id || "").trim();
-    const query = mongoose.isValidObjectId(identifier)
-      ? { $or: [{ _id: identifier }, { slug: identifier }, { externalId: identifier }] }
-      : { $or: [{ slug: identifier }, { externalId: identifier }] };
-    const prayer = await Prayer.findOne(query).populate("deity");
+    const prayer = await findPrayerByIdentifier(req.params.id);
     if (!prayer) {
       return res.status(404).json({ message: "Prayer not found" });
     }
@@ -264,6 +280,74 @@ export async function favoritePrayer(req, res, next) {
       await req.user.save();
     }
     return res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function openPrayer(req, res, next) {
+  try {
+    const prayer = await findPrayerByIdentifier(req.params.id);
+    if (!prayer) {
+      return res.status(404).json({ message: "Prayer not found" });
+    }
+
+    const result = await recordPrayerOpened({
+      user: req.user,
+      prayer
+    });
+
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function completePrayer(req, res, next) {
+  try {
+    const prayer = await findPrayerByIdentifier(req.params.id);
+    if (!prayer) {
+      return res.status(404).json({ message: "Prayer not found" });
+    }
+
+    const durationSeconds = Number(req.body?.durationSeconds || 0);
+    const completedVia = String(req.body?.completedVia || "audio");
+    const result = await recordPrayerCompleted({
+      user: req.user,
+      prayer,
+      durationSeconds,
+      completedVia
+    });
+
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function interactWithPrayer(req, res, next) {
+  try {
+    const prayer = await findPrayerByIdentifier(req.params.id);
+    if (!prayer) {
+      return res.status(404).json({ message: "Prayer not found" });
+    }
+
+    const kind = String(req.body?.kind || "").trim().toLowerCase();
+    if (!["scripture_reader", "word_explorer"].includes(kind)) {
+      return res.status(400).json({ message: "Interaction kind is invalid." });
+    }
+
+    const result = await recordPrayerInteraction({
+      user: req.user,
+      prayer,
+      kind,
+      metadata: {
+        word: req.body?.word ? String(req.body.word).trim() : undefined,
+        tab: req.body?.tab ? String(req.body.tab).trim() : undefined
+      }
+    });
+
+    return res.json(result);
   } catch (error) {
     next(error);
   }

@@ -1,8 +1,11 @@
 import { fetchBackend } from "./backend";
+import { enumerateIsoDates } from "./panchang";
+import { enrichPrayer, enrichPrayers } from "./prayer-enrichment";
 import type {
   AuthResponse,
   Deity,
   Festival,
+  GamificationResult,
   LearningPath,
   Panchang,
   Prayer,
@@ -21,11 +24,45 @@ export async function getTemple() {
 }
 
 export async function getPrayers(params = "") {
-  return fetchBackend<Prayer[]>(`/prayers${params}`);
+  const prayers = await fetchBackend<Prayer[]>(`/prayers${params}`);
+  return enrichPrayers(prayers);
 }
 
 export async function getPrayer(idOrSlug: string) {
-  return fetchBackend<Prayer>(`/prayers/${idOrSlug}`);
+  const prayer = await fetchBackend<Prayer>(`/prayers/${idOrSlug}`);
+  return enrichPrayer(prayer);
+}
+
+export async function openPrayer(id: string, token: string) {
+  return fetchBackend<GamificationResult>(`/prayers/${id}/open`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({})
+  });
+}
+
+export async function completePrayer(
+  id: string,
+  token: string,
+  payload: { durationSeconds: number; completedVia: string }
+) {
+  return fetchBackend<GamificationResult>(`/prayers/${id}/complete`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function interactWithPrayer(
+  id: string,
+  token: string,
+  payload: { kind: "scripture_reader" | "word_explorer"; word?: string; tab?: string }
+) {
+  return fetchBackend<GamificationResult>(`/prayers/${id}/interact`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload)
+  });
 }
 
 export async function getPrayerAudio(id: string, token: string) {
@@ -33,7 +70,8 @@ export async function getPrayerAudio(id: string, token: string) {
 }
 
 export async function getFeaturedPrayers() {
-  return fetchBackend<Prayer[]>("/prayers/featured");
+  const prayers = await fetchBackend<Prayer[]>("/prayers/featured");
+  return enrichPrayers(prayers);
 }
 
 export async function getDailyRecommendation(timezone: string, token?: string | null) {
@@ -47,10 +85,22 @@ export async function getPanchangToday(timezone: string) {
   return fetchBackend<Panchang>(`/panchang/today?timezone=${encodeURIComponent(timezone)}`);
 }
 
+export async function getPanchangByDate(date: string, timezone: string) {
+  return fetchBackend<Panchang>(`/panchang/${date}?timezone=${encodeURIComponent(timezone)}`);
+}
+
 export async function getPanchangUpcoming(timezone: string, days = 14) {
   return fetchBackend<Panchang[]>(
     `/panchang/upcoming?timezone=${encodeURIComponent(timezone)}&days=${days}`
   );
+}
+
+export async function getPanchangRange(timezone: string, startDate: string, endDate: string) {
+  const dates = enumerateIsoDates(startDate, endDate);
+  const results = await Promise.all(
+    dates.map((date) => getPanchangByDate(date, timezone).catch(() => null))
+  );
+  return results.filter(Boolean) as Panchang[];
 }
 
 export async function getFestivals(days = 30) {
@@ -74,7 +124,7 @@ export async function getLearningPath(id: string, token?: string | null) {
 }
 
 export async function getLearningModule(id: string, moduleId: string, token?: string | null) {
-  return fetchBackend<{ deity: UserSession; module: LearningPath["modules"][number] }>(
+  return fetchBackend<{ deity: Deity; module: LearningPath["modules"][number] }>(
     `/deities/${id}/learning-path/${moduleId}`,
     { token }
   );
@@ -98,6 +148,10 @@ export async function getStats(token: string) {
 
 export async function getBookings(token: string) {
   return fetchBackend<PujaBooking[]>("/bookings", { token });
+}
+
+export async function getUserPrayerSessions(token: string) {
+  return fetchBackend<UserSession["sharedSessions"]>("/users/prayer-sessions", { token });
 }
 
 export async function getBooking(id: string, token: string) {
@@ -129,6 +183,20 @@ export async function loginUser(payload: Record<string, unknown>) {
 
 export async function registerUser(payload: Record<string, unknown>) {
   return fetchBackend<AuthResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function requestPasswordReset(payload: { email: string }) {
+  return fetchBackend<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function confirmPasswordReset(payload: { token: string; password: string }) {
+  return fetchBackend<{ message: string }>("/auth/reset-password", {
     method: "POST",
     body: JSON.stringify(payload)
   });

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { sendJson } from "../../lib/client-api";
+import { markPendingOnboarding } from "../../lib/ux-state";
 import { GoogleAuthButton } from "./GoogleAuthButton";
 import { Button } from "../ui/Button";
 import { StatusStrip } from "../ui/StatusStrip";
@@ -17,7 +18,6 @@ type RegisterValues = {
 };
 
 export function RegisterForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -46,8 +46,8 @@ export function RegisterForm() {
             method: "POST",
             body: JSON.stringify(values)
           });
-          router.push(next);
-          router.refresh();
+          markPendingOnboarding();
+          window.location.assign(`/onboarding?next=${encodeURIComponent(next)}`);
         } catch (nextError) {
           setError(nextError instanceof Error ? nextError.message : "Unable to create account.");
         } finally {
@@ -57,7 +57,7 @@ export function RegisterForm() {
     >
       <GoogleAuthButton returnTo={next} />
       <div className="oauth-divider">or create your account with email</div>
-      <div className="trust-strip">
+      <div className="trust-strip trust-strip--auth">
         <span>Free to start</span>
         <span>Timezone-aware reminders</span>
       </div>

@@ -1,16 +1,18 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { fetchBackend } from "./backend";
-import { IS_PRODUCTION } from "./env";
+import { SITE_URL } from "./env";
 import type { UserSession } from "./types";
 
 export const SESSION_COOKIE = "divya_web_session";
+
+const SECURE_SESSION_COOKIE = SITE_URL.startsWith("https://");
 
 export function getSessionCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: IS_PRODUCTION,
+    secure: SECURE_SESSION_COOKIE,
     path: "/",
     maxAge: 60 * 60 * 24 * 30
   };

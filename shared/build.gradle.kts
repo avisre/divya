@@ -30,6 +30,8 @@ kotlin {
         }
         val androidMain by getting {
             dependencies {
+                implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
+                implementation("com.google.firebase:firebase-analytics-ktx")
                 implementation("io.ktor:ktor-client-okhttp:2.3.12")
                 implementation("app.cash.sqldelight:android-driver:2.0.2")
             }

@@ -7,6 +7,7 @@ import { User } from "../models/User.js";
 import { UserProgress } from "../models/UserProgress.js";
 import { ApiError, createValidationError } from "../utils/ApiError.js";
 import { filterIntention } from "../utils/contentFilter.js";
+import { recordBookingMade } from "../utils/gamification.js";
 import { getStoredVideoInfo, openVideoDownloadStream } from "../utils/videoStore.js";
 import { resolveBookingGothram, suggestGothramGuided } from "../utils/gothram.js";
 import { sendAdminBookingAlertEmail } from "../utils/email.js";
@@ -275,11 +276,19 @@ export async function createBooking(req, res, next) {
     });
     await booking.populate("puja temple");
     await sendAdminBookingAlert(booking, req.user);
+    const bookingCount = await PujaBooking.countDocuments({ user: req.user._id });
+    const gamification = await recordBookingMade({
+      userId: req.user._id,
+      bookingId: booking._id,
+      bookingReference: booking.bookingReference,
+      isFirstBooking: bookingCount === 1
+    });
 
     return res.status(201).json({
       booking,
       clientSecret: paymentIntent?.client_secret || null,
-      paymentRequired: !paymentsDisabled
+      paymentRequired: !paymentsDisabled,
+      gamification
     });
   } catch (error) {
     next(error);
@@ -342,11 +351,19 @@ export async function createGiftBooking(req, res, next) {
 
     await linkGiftToUsers(booking, req.user);
     await sendAdminBookingAlert(booking, req.user);
+    const bookingCount = await PujaBooking.countDocuments({ user: req.user._id });
+    const gamification = await recordBookingMade({
+      userId: req.user._id,
+      bookingId: booking._id,
+      bookingReference: booking.bookingReference,
+      isFirstBooking: bookingCount === 1
+    });
 
     return res.status(201).json({
       booking,
       clientSecret: paymentIntent?.client_secret || null,
-      paymentRequired: !paymentsDisabled
+      paymentRequired: !paymentsDisabled,
+      gamification
     });
   } catch (error) {
     next(error);

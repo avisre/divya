@@ -24,6 +24,25 @@ export type PrayerVerseTiming = {
   endMs: number;
 };
 
+export type PrayerGlossaryEntry = {
+  word: string;
+  transliteration?: string | null;
+  meaning?: string | null;
+};
+
+export type PrayerVerse = {
+  number: number;
+  type?: string | null;
+  script?: string | null;
+  iast?: string | null;
+  meaning?: string | null;
+  audioStartSec?: number | null;
+  nameDevanagari?: string | null;
+  nameIast?: string | null;
+  meaningWordByWord?: string | null;
+  meaningSummary?: string | null;
+};
+
 export type Prayer = {
   _id: string;
   id?: string;
@@ -34,6 +53,15 @@ export type Prayer = {
   type: string;
   difficulty: string;
   durationMinutes: number;
+  plainStory?: string | null;
+  wordGlossary?: PrayerGlossaryEntry[];
+  familyContext?: string | null;
+  beginnerTip?: string | null;
+  nriRelevance?: string | null;
+  verseCount?: number;
+  verses?: PrayerVerse[];
+  xpReward?: number;
+  firstLinePreview?: string | null;
   transliteration?: string | null;
   content: {
     devanagari?: string | null;
@@ -246,6 +274,7 @@ export type UserSession = {
     eveningEnabled?: boolean;
     eveningTime?: string;
     festivalAlerts?: boolean;
+    reengagementEmails?: boolean;
   };
   subscription?: Subscription;
   streak?: UserStreak;
@@ -262,6 +291,7 @@ export type UserSession = {
   }>;
   giftsGiven?: string[];
   giftsReceived?: string[];
+  gamification?: GamificationStats;
 };
 
 export type AuthResponse = {
@@ -355,6 +385,57 @@ export type Stats = {
   streakDays?: number;
   longestStreakDays?: number;
   pujaBookingsCount?: number;
+  totalLotusPoints?: number;
+  prayersOpenedCount?: number;
+  prayersCompletedCount?: number;
+  modulesCompletedCount?: number;
+  familySessionsCount?: number;
+  daysPracticedThisMonth?: number;
+  videosWatched?: number;
+  lastOpenedPrayerSlug?: string;
+  tier?: GamificationTier;
+  milestones?: GamificationMilestone[];
+};
+
+export type GamificationTier = {
+  key: string;
+  min: number;
+  max?: number;
+  icon: string;
+  description: string;
+  totalPoints: number;
+  nextTier?: {
+    key: string;
+    icon: string;
+    min: number;
+    description: string;
+  } | null;
+  progressPercent: number;
+  pointsToNextTier: number;
+};
+
+export type GamificationMilestone = {
+  key: string;
+  name: string;
+  toast: string;
+  pointsBonus: number;
+  earnedAt?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type GamificationStats = Stats & {
+  tier: GamificationTier;
+  milestones: GamificationMilestone[];
+};
+
+export type GamificationResult = {
+  pointsAwarded: number;
+  milestonesEarned: GamificationMilestone[];
+  tierUpgrade?: {
+    previousTier: Omit<GamificationTier, "totalPoints" | "nextTier" | "progressPercent" | "pointsToNextTier">;
+    currentTier: Omit<GamificationTier, "totalPoints" | "nextTier" | "progressPercent" | "pointsToNextTier">;
+  } | null;
+  stats: GamificationStats;
 };
 
 export type ApiErrorPayload = {

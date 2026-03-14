@@ -1,11 +1,22 @@
+import type { Metadata } from "next";
 import { Hero } from "../components/content/Hero";
 import { MetricGrid } from "../components/content/MetricGrid";
 import { PanchangSummary } from "../components/content/PanchangSummary";
 import { PrayerCard } from "../components/content/PrayerCard";
 import { PujaCard } from "../components/content/PujaCard";
 import { Section } from "../components/content/Section";
+import { StructuredData } from "../components/content/StructuredData";
 import { Button } from "../components/ui/Button";
 import { getFeaturedPrayers, getPanchangToday, getPujas, getTemple } from "../lib/data";
+import { getPanchangTone, getTempleVisual, OM_SYMBOL } from "../lib/presentation";
+import { buildOrganizationSchema, buildPublicMetadata } from "../lib/seo";
+
+export const metadata: Metadata = buildPublicMetadata({
+  title: "Prarthana | Hindu prayer app for families abroad",
+  description:
+    "Guided prayers, temple-coordinated puja waitlists, sacred recordings, and panchang-led daily rhythm for families connected to Bhadra Bhagavathi Temple.",
+  path: "/"
+});
 
 export default async function LandingPage() {
   const [featuredPrayers, temple, panchang, pujas] = await Promise.all([
@@ -15,93 +26,105 @@ export default async function LandingPage() {
     getPujas("USD").catch(() => [])
   ]);
 
+  const templeVisual = getTempleVisual(temple);
+  const panchangTone = panchang ? getPanchangTone(panchang) : "neutral";
+
   return (
     <div className="page-stack">
+      <StructuredData data={buildOrganizationSchema()} />
       <Hero
-        eyebrow="Temple connection for families abroad"
-        title="A devotional web home for prayer, panchang, puja waitlists, and sacred records."
-        subtitle="Divya brings together guided prayers, local-time spiritual guidance, temple offerings, and private booking records in one calm, secure experience."
+        variant="landing"
+        eyebrow="Bhadra Bhagavathi Temple - Karunagapally"
+        title="A devotional home for NRI families staying close to the temple rhythm."
+        subtitle="Prarthana brings together guided prayers, daily sacred timing, temple puja requests, and private recordings for families carrying Kerala temple memory across oceans."
         actions={
           <>
-            <Button href="/register">Create account</Button>
+            <Button href="/register">Begin with Prarthana</Button>
             <Button tone="secondary" href="/login">
               Sign in
             </Button>
           </>
         }
+        watermark={OM_SYMBOL}
         aside={
-          <div className="surface-card">
-            <h3>What the web app covers</h3>
-            <MetricGrid
-              items={[
-                { label: "Featured prayers", value: `${featuredPrayers.length}+` },
-                { label: "Temple offerings", value: `${pujas.length}` },
-                { label: "Sacred videos", value: "Private" },
-                { label: "Support surface", value: "Direct" }
-              ]}
-            />
+          <div className="hero-side-stack">
+            {panchang ? (
+              <div className={`surface-card hero-snippet hero-snippet--${panchangTone}`}>
+                <p className="eyebrow">{"Today\u2019s panchang"}</p>
+                <strong>{panchang.tithi.name}</strong>
+                <span>{panchang.nakshatra.name}</span>
+                <p>{panchang.dailyGuidance?.overall || "A calm day for prayer and steady ritual rhythm."}</p>
+              </div>
+            ) : null}
+            <figure className="media-frame media-frame--hero">
+              <img src={templeVisual.src} alt={templeVisual.alt} className="media-frame__image" />
+            </figure>
           </div>
         }
       />
 
-      <Section title="Start here" subtitle="Choose the next sacred action without guessing where the app begins.">
-        <div className="content-grid">
-          <div className="surface-card surface-card--feature">
-            <h3>Create or resume your account</h3>
-            <p>Email sign-in and Google sign-in are both available. Your web session stays protected without exposing account tokens in the browser.</p>
-            <div className="card-actions">
-              <Button href="/register">Create account</Button>
-              <Button tone="secondary" href="/login">
-                Sign in
-              </Button>
-            </div>
-          </div>
-          {temple ? (
-            <div className="surface-card surface-card--warm">
-              <h3>{temple.name.en}</h3>
-              <p>{temple.nriNote || temple.significance || temple.fullDescription}</p>
-              <div className="card-actions">
-                <Button href="/temple">View temple</Button>
-                <Button tone="secondary" href="/pujas">
-                  Browse pujas
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </div>
+      <Section
+        title="Temple trust"
+        subtitle="The web experience should answer the questions families abroad actually ask before they place their faith in it."
+      >
+        <MetricGrid
+          items={[
+            { label: "Temple queue", value: "Connected", helper: "Requests stay aligned to the real temple queue" },
+            { label: "Temple priest", value: "Licensed Tantri", helper: "Offerings are performed by the temple tradition" },
+            { label: "Sacred video", value: "48h delivery", helper: "HD recording arrives privately to your account" },
+            { label: "Family intent", value: "Name-linked", helper: "Prayers are offered in your family\u2019s name" }
+          ]}
+        />
       </Section>
 
       {panchang ? (
-        <Section title="Today" subtitle="Keep your day spiritually anchored before you pick a prayer or a puja.">
+        <Section
+          title={"Today\u2019s rhythm"}
+          subtitle="Begin from the daily sacred timing before choosing a prayer or a puja."
+        >
           <PanchangSummary panchang={panchang} />
         </Section>
       ) : null}
 
-      <Section title="Featured prayers" subtitle="Open one prayer and continue your rhythm from anywhere.">
-        <div className="content-grid">
-          {featuredPrayers.slice(0, 3).map((prayer) => (
+      <Section
+        title="Featured prayers"
+        subtitle="A focused library for households that want clarity, pronunciation support, and a calm reading experience."
+      >
+        <div className="catalog-grid catalog-grid--two">
+          {featuredPrayers.slice(0, 2).map((prayer) => (
             <PrayerCard key={prayer._id} prayer={prayer} />
           ))}
         </div>
       </Section>
 
-      <Section title="Temple offerings" subtitle="Waitlist-based pujas remain tied directly to the temple workflow.">
-        <div className="content-grid">
+      <Section
+        title="Temple offerings"
+        subtitle="Waitlist-based offerings stay temple-led, with the context families need before they submit."
+      >
+        <div className="catalog-grid">
           {pujas.slice(0, 3).map((puja) => (
             <PujaCard key={puja._id} puja={puja} />
           ))}
         </div>
       </Section>
 
-      <Section title="Trust and privacy" subtitle="The web app is designed for real family use, not a demo flow.">
-        <div className="content-grid">
-          <div className="surface-card">
+      <Section title="Privacy declaration" subtitle="Privacy is part of the product, not something hidden in the footer.">
+        <div className="declaration-grid">
+          <div className="surface-card declaration-card">
+            <div className="ornament-line" aria-hidden="true" />
             <h3>Private by default</h3>
-            <p>Sessions are stored in secure HttpOnly cookies. Your browser does not keep account tokens in local or session storage.</p>
+            <p>
+              Sessions live in secure cookies, not browser token storage. Prayer records, offerings,
+              and videos remain private to your account.
+            </p>
           </div>
-          <div className="surface-card">
-            <h3>Same backend, stronger web security</h3>
-            <p>The web app uses the same MongoDB-backed backend as mobile, while routing sensitive requests through a same-origin server layer.</p>
+          <div className="surface-card declaration-card">
+            <div className="ornament-line" aria-hidden="true" />
+            <h3>Temple-backed continuity</h3>
+            <p>
+              The website and mobile app both speak to the same backend and temple workflow, so your
+              family never loses the thread of a ritual once it begins.
+            </p>
           </div>
         </div>
       </Section>

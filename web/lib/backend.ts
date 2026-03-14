@@ -16,6 +16,14 @@ type BackendOptions = RequestInit & {
   token?: string | null;
 };
 
+function normalizeBackendPath(path: string) {
+  const trimmed = path.trim();
+  if (!trimmed) {
+    return "";
+  }
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
 export async function fetchBackend<T>(path: string, options: BackendOptions = {}): Promise<T> {
   const response = await fetchBackendResponse(path, options);
 
@@ -40,7 +48,7 @@ export async function fetchBackendResponse(path: string, options: BackendOptions
     headers.set("Authorization", `Bearer ${options.token}`);
   }
 
-  return fetch(`${BACKEND_API_BASE_URL}${path}`, {
+  return fetch(`${BACKEND_API_BASE_URL.trim()}${normalizeBackendPath(path)}`, {
     ...options,
     headers,
     cache: options.cache || "no-store"

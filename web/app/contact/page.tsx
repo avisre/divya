@@ -1,10 +1,22 @@
+import type { Metadata } from "next";
 import { Hero } from "../../components/content/Hero";
 import { Section } from "../../components/content/Section";
 import { SupportForm } from "../../components/forms/SupportForm";
+import { buildPrivateMetadata } from "../../lib/seo";
 import { requireSession } from "../../lib/session";
 
-export default async function ContactPage() {
-  const session = await requireSession("/contact");
+export const metadata: Metadata = buildPrivateMetadata({
+  title: "Account support",
+  description: "Private account support for bookings, temple coordination, and devotional guidance."
+});
+
+export default async function ContactPage({
+  searchParams
+}: {
+  searchParams: Promise<{ bookingReference?: string }>;
+}) {
+  const [session, query] = await Promise.all([requireSession("/contact"), searchParams]);
+  const bookingReference = typeof query?.bookingReference === "string" ? query.bookingReference : "";
 
   return (
     <div className="page-stack">
@@ -17,7 +29,9 @@ export default async function ContactPage() {
         <SupportForm
           defaults={{
             name: session.user.name,
-            email: session.user.email
+            email: session.user.email,
+            bookingReference,
+            subject: bookingReference ? `Question about booking ${bookingReference}` : ""
           }}
         />
       </Section>

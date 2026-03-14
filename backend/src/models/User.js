@@ -26,7 +26,8 @@ const prayerReminderSchema = new mongoose.Schema(
     morningTime: { type: String, default: "07:00" },
     eveningEnabled: { type: Boolean, default: true },
     eveningTime: { type: String, default: "19:00" },
-    festivalAlerts: { type: Boolean, default: true }
+    festivalAlerts: { type: Boolean, default: true },
+    reengagementEmails: { type: Boolean, default: true }
   },
   { _id: false }
 );
@@ -129,6 +130,8 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, unique: true, required: true, lowercase: true, trim: true },
   password: { type: String, required: true },
+  passwordResetTokenHash: { type: String, default: null },
+  passwordResetExpiresAt: { type: Date, default: null },
   profilePicture: String,
   role: { type: String, enum: ["user", "admin"], default: "user" },
   country: { type: String, default: "US" },

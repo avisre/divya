@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import { Hero } from "../../components/content/Hero";
 import { MetricGrid } from "../../components/content/MetricGrid";
 import { Section } from "../../components/content/Section";
 import { ProfileForm } from "../../components/forms/ProfileForm";
+import { getEarnedMilestoneMap, milestoneDefinitions } from "../../lib/gamification";
 import { getProfile, getStats } from "../../lib/data";
+import { buildPrivateMetadata } from "../../lib/seo";
 import { requireSession } from "../../lib/session";
+
+export const metadata: Metadata = buildPrivateMetadata({
+  title: "Profile",
+  description: "Private devotional record, rhythm, and reminder settings for your Prarthana account."
+});
 
 export default async function ProfilePage() {
   const session = await requireSession("/profile");
@@ -12,7 +20,9 @@ export default async function ProfilePage() {
     getStats(session.token).catch(() => null)
   ]);
   const timezoneLabel = profile.timezone?.replace(/_/g, " ") || "Timezone not set";
-  const tierLabel = `${profile.subscription?.tier || "free"} tier`;
+  const gamification = profile.gamification || stats;
+  const tier = gamification?.tier;
+  const earnedMilestones = getEarnedMilestoneMap(gamification?.milestones);
 
   return (
     <div className="page-stack">
@@ -20,42 +30,78 @@ export default async function ProfilePage() {
         variant="profile"
         eyebrow="Profile"
         title={profile.name}
-        subtitle={`${tierLabel} ${"\u2022"} ${timezoneLabel}`}
+        subtitle={`${tier?.icon || "🪷"} ${tier?.key || "SEEKER"} • ${timezoneLabel}`}
         aside={
-          <div className="surface-card">
-            <h3>Prayer record</h3>
-            <MetricGrid
-              items={[
-                { label: "Current streak", value: `${profile.streak?.current || 0}` },
-                { label: "Prayers completed", value: `${stats?.prayersCompleted || 0}` },
-                { label: "Minutes prayed", value: `${stats?.minutesPrayed || 0}` }
-              ]}
-            />
+          <div className="surface-card profile-summary-card profile-tier-card">
+            <h3>Your devotional record</h3>
+            <div className="profile-tier-card__header">
+              <strong>{tier?.icon || "🪷"} {tier?.key || "SEEKER"}</strong>
+              <span>{gamification?.totalLotusPoints || 0} lotus points</span>
+            </div>
+            <div className="practice-progress" aria-label="Progress to next tier">
+              <div
+                className="practice-progress__value"
+                style={{ width: `${tier?.progressPercent || 0}%` }}
+              />
+            </div>
+            <p className="profile-tier-card__next">
+              {tier?.nextTier
+                ? `${tier.progressPercent}% to ${tier.nextTier.key} (${tier.nextTier.min} pts)`
+                : "Highest devotional tier reached."}
+            </p>
+            <p className="profile-summary-card__note">
+              {tier?.description || "Your practice is taking shape."}
+            </p>
           </div>
         }
       />
-      <Section title="Your rhythm" subtitle="Keep prayer, reminders, and timezone details accurate.">
-        <div className="content-grid">
-          <div className="surface-card surface-card--feature">
-            <h3>Current stats</h3>
-            <MetricGrid
-              items={[
-                { label: "Current streak", value: `${profile.streak?.current || 0}` },
-                { label: "Prayers completed", value: `${stats?.prayersCompleted || 0}` },
-                { label: "Minutes prayed", value: `${stats?.minutesPrayed || 0}` }
-              ]}
-            />
-          </div>
-          <div className="surface-card">
-            <h3>Account summary</h3>
-            <div className="list-stack">
-              <div className="list-row"><span>Email</span><span>{profile.email}</span></div>
-              <div className="list-row"><span>Country</span><span>{profile.country || "Not set"}</span></div>
-              <div className="list-row"><span>Timezone</span><span>{timezoneLabel}</span></div>
+      <Section
+        title="Your practice"
+        subtitle="Lotus points, prayer rhythm, and learning progress stay visible without turning devotion into competition."
+      >
+        <div className="page-stack">
+          <MetricGrid
+            items={[
+              { label: "Prayers opened", value: `${gamification?.prayersOpenedCount || 0}`, icon: "🪷" },
+              { label: "Family sessions", value: `${gamification?.familySessionsCount || 0}`, icon: "👨‍👩‍👧" },
+              { label: "Modules read", value: `${gamification?.modulesCompletedCount || 0}`, icon: "📚" }
+            ]}
+          />
+          <div className="surface-card milestone-panel">
+            <div className="section-card__header">
+              <div>
+                <p className="eyebrow">Milestones</p>
+                <h3 className="section-title">Your milestones</h3>
+              </div>
+            </div>
+            <div className="milestone-pill-grid">
+              {milestoneDefinitions.map((milestone) => {
+                const earned = earnedMilestones.get(milestone.key);
+                return (
+                  <button
+                    key={milestone.key}
+                    type="button"
+                    className={`milestone-pill ${earned ? "milestone-pill--earned" : "milestone-pill--locked"}`}
+                    title={earned ? `${milestone.label} earned` : milestone.requirement}
+                  >
+                    <span className="milestone-pill__icon" aria-hidden="true">
+                      {earned ? milestone.icon : "🔒"}
+                    </span>
+                    <span>{milestone.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
-        <ProfileForm user={profile} />
+      </Section>
+      <Section
+        title="Your rhythm"
+        subtitle="Prayer language, timezone, and reminder preferences live together in one calm card."
+      >
+        <div className="surface-card rhythm-card">
+          <ProfileForm user={profile} />
+        </div>
       </Section>
     </div>
   );

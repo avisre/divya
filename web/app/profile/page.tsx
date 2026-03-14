@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Hero } from "../../components/content/Hero";
 import { MetricGrid } from "../../components/content/MetricGrid";
 import { Section } from "../../components/content/Section";
@@ -101,6 +102,34 @@ export default async function ProfilePage() {
       >
         <div className="surface-card rhythm-card">
           <ProfileForm user={profile} />
+        </div>
+      </Section>
+      <Section
+        title="Membership"
+        subtitle="Plan access and devotional progress stay separate. Practice tier reflects your momentum; membership reflects your unlocked library and family archive access."
+      >
+        <div className="surface-card profile-membership-card">
+          <div>
+            <p className="eyebrow">Access plan</p>
+            <h3>
+              {profile.subscription?.tier === "bhakt"
+                ? "Bhakt"
+                : profile.subscription?.tier === "seva"
+                  ? "Seva"
+                  : "Free"}
+              {profile.subscription?.interval ? ` · ${profile.subscription.interval}` : ""}
+            </h3>
+            <p className="muted">
+              {profile.subscription?.tier === "free"
+                ? "Free keeps the first devotional step open. Bhakt and Seva add deeper prayer access and family archive tools."
+                : `Status: ${String(profile.subscription?.status || "active").replace(/_/g, " ")}`}
+            </p>
+          </div>
+          <div className="card-actions">
+            <Link href="/plans" className="button button--secondary">
+              View plans and billing
+            </Link>
+          </div>
         </div>
       </Section>
     </div>

@@ -3,6 +3,10 @@ import Stripe from "stripe";
 import { PujaBooking } from "../models/PujaBooking.js";
 import { User } from "../models/User.js";
 import { sendGiftReceivedEmail, sendPaymentFailedEmail, sendWaitlistConfirmationEmail } from "../utils/email.js";
+import {
+  syncUserSubscriptionFromCheckoutSession,
+  syncUserSubscriptionFromStripeSubscription
+} from "../utils/subscriptionBilling.js";
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
@@ -71,6 +75,21 @@ export async function handleStripeWebhook(req, res, next) {
           await booking.save();
         }
       }
+    }
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      if (session.mode === "subscription") {
+        await syncUserSubscriptionFromCheckoutSession(session);
+      }
+    }
+
+    if (
+      event.type === "customer.subscription.created" ||
+      event.type === "customer.subscription.updated" ||
+      event.type === "customer.subscription.deleted"
+    ) {
+      await syncUserSubscriptionFromStripeSubscription(event.data.object);
     }
 
     if (event.type === "payment_intent.payment_failed") {

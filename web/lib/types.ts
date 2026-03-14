@@ -251,6 +251,52 @@ export type Subscription = {
   tier: "free" | "bhakt" | "seva";
   expiresAt?: string;
   platform?: string;
+  priceId?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  status?: string | null;
+  interval?: "month" | "year" | null;
+  currentPeriodStart?: string | null;
+  currentPeriodEnd?: string | null;
+  cancelAtPeriodEnd?: boolean;
+};
+
+export type BillingInterval = "month" | "year";
+
+export type BillingPriceOption = {
+  amountCents: number;
+  currency: string;
+  interval: BillingInterval;
+  envKey: string;
+  lookupKey: string;
+  savingsLabel?: string;
+  priceId: string | null;
+  active: boolean;
+};
+
+export type BillingPlan = {
+  tier: "free" | "bhakt" | "seva";
+  name: string;
+  summary: string;
+  badge?: string | null;
+  cta: string;
+  footnote: string;
+  perks: string[];
+  prices: Partial<Record<BillingInterval, BillingPriceOption>>;
+};
+
+export type BillingCatalog = {
+  enabled: boolean;
+  subscriptionsConfigured: boolean;
+  plans: BillingPlan[];
+  currentSubscription?: {
+    tier: "free" | "bhakt" | "seva";
+    status: string;
+    interval: BillingInterval | null;
+    cancelAtPeriodEnd: boolean;
+    currentPeriodEnd: string | null;
+    name: string;
+  } | null;
 };
 
 export type UserSession = {

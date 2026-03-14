@@ -3,6 +3,7 @@ import { enumerateIsoDates } from "./panchang";
 import { enrichPrayer, enrichPrayers } from "./prayer-enrichment";
 import type {
   AuthResponse,
+  BillingCatalog,
   Deity,
   Festival,
   GamificationResult,
@@ -132,6 +133,10 @@ export async function getLearningModule(id: string, moduleId: string, token?: st
 
 export async function getPujas(currency = "USD") {
   return fetchBackend<Puja[]>(`/pujas?currency=${currency}`);
+}
+
+export async function getBillingPlans(token?: string | null) {
+  return fetchBackend<BillingCatalog>("/billing/plans", { token });
 }
 
 export async function getPuja(id: string, currency = "USD") {

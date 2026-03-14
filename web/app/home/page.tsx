@@ -107,6 +107,11 @@ export default async function HomePage() {
             </div>
             <div className="card-actions">
               <Button href={practiceHref}>Continue your practice {"->"}</Button>
+              {session.user.subscription?.tier === "free" ? (
+                <Button href="/plans" tone="ghost">
+                  View plans
+                </Button>
+              ) : null}
             </div>
           </div>
         }

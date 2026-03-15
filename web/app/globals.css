@@ -1105,9 +1105,8 @@ select:focus {
 }
 
 .prayer-audio-player {
-  display: grid;
-  gap: 14px;
-  padding: 22px;
+  display: block;
+  padding: 20px 22px;
   border-radius: 16px;
   background: rgba(247, 241, 232, 0.88);
   border: 1px solid rgba(237, 227, 210, 0.95);
@@ -1115,22 +1114,57 @@ select:focus {
   z-index: 0;
 }
 
+.prayer-audio-player__transport {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
 .prayer-audio-player__toggle {
-  width: 58px;
-  height: 58px;
+  width: 64px;
+  height: 64px;
   border: 0;
   border-radius: 50%;
   background: var(--vermilion-400);
   color: white;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 24px rgba(193, 68, 14, 0.18);
+}
+
+.prayer-audio-player__transport-body {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.prayer-audio-player__trackline {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
 }
 
 .prayer-audio-player__rail {
   display: inline-flex;
-  gap: 6px;
-  align-items: flex-end;
+  gap: 10px;
+  align-items: center;
   color: var(--vermilion-400);
   pointer-events: none;
+}
+
+.prayer-audio-player__signal-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+
+.prayer-audio-player__wave-cluster {
+  display: inline-flex;
+  gap: 6px;
+  align-items: flex-end;
 }
 
 .prayer-audio-player__wave {
@@ -1145,8 +1179,7 @@ select:focus {
 .prayer-audio-player__wave--tall { height: 24px; }
 
 .prayer-audio-player__timeline {
-  display: grid;
-  gap: 10px;
+  display: block;
 }
 
 .prayer-audio-player__range {
@@ -1201,31 +1234,47 @@ select:focus {
 
 .prayer-audio-player__times {
   display: flex;
-  justify-content: space-between;
+  gap: 18px;
+  flex: 0 0 auto;
   color: var(--teak-500);
   font-size: 0.84rem;
 }
 
-.prayer-audio-player__volume {
+.prayer-audio-player__controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.prayer-audio-player__volume-shell {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(136px, 180px) auto;
   gap: 12px;
   align-items: center;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(253, 250, 245, 0.88);
+  min-width: 0;
+}
+
+.prayer-audio-player__volume-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--teak-700);
+  display: grid;
+  place-items: center;
 }
 
-.prayer-audio-player__volume-label,
-.prayer-audio-player__volume-value {
-  font-size: 0.84rem;
+.prayer-audio-player__volume-toggle svg {
+  width: 22px;
+  height: 22px;
 }
 
-.prayer-audio-player__volume-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.prayer-audio-player__volume {
+  display: block;
+  min-width: 0;
 }
 
 .prayer-audio-player__volume-range {
@@ -1279,7 +1328,9 @@ select:focus {
 }
 
 .prayer-audio-player__range:focus-visible,
-.prayer-audio-player__volume-range:focus-visible {
+.prayer-audio-player__volume-range:focus-visible,
+.prayer-audio-player__volume-toggle:focus-visible,
+.prayer-audio-player__toggle:focus-visible {
   outline: 3px solid rgba(193, 68, 14, 0.2);
   outline-offset: 4px;
 }
@@ -1288,6 +1339,13 @@ select:focus {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.prayer-audio-player__volume-value {
+  font-size: 0.84rem;
+  min-width: 2.5rem;
+  text-align: right;
+  color: var(--teak-700);
 }
 
 .chip-toggle-row--tabs {
@@ -3109,8 +3167,26 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
-  .prayer-audio-player__volume {
+  .prayer-audio-player__transport {
     grid-template-columns: 1fr;
+  }
+
+  .prayer-audio-player__toggle {
+    justify-self: start;
+  }
+
+  .prayer-audio-player__trackline,
+  .prayer-audio-player__controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .prayer-audio-player__times {
+    justify-content: space-between;
+  }
+
+  .prayer-audio-player__volume-shell {
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
   .prayer-audio-player__volume-value {

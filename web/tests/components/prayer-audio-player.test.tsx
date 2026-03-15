@@ -36,4 +36,24 @@ describe("PrayerAudioPlayer", () => {
     expect(audio.volume).toBeCloseTo(0.35, 2);
     expect(screen.getByText("35%")).toBeInTheDocument();
   });
+
+  it("toggles mute without losing the previous audible volume", () => {
+    const { container } = render(
+      <PrayerAudioPlayer src="https://cdn.divya.app/audio/gayatri.mp3" title="Gayatri Mantra" />
+    );
+
+    const volumeRange = screen.getByLabelText(/Prayer audio volume/i);
+    const audio = container.querySelector("audio") as HTMLAudioElement;
+
+    fireEvent.change(volumeRange, { target: { value: "42" } });
+    fireEvent.click(screen.getByLabelText(/Mute prayer audio/i));
+
+    expect(audio.volume).toBe(0);
+    expect(screen.getByText("0%")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(/Unmute prayer audio/i));
+
+    expect(audio.volume).toBeCloseTo(0.42, 2);
+    expect(screen.getByText("42%")).toBeInTheDocument();
+  });
 });

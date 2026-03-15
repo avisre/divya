@@ -1,5 +1,7 @@
 "use client";
 
+import { sendJson } from "./client-api";
+
 type AnalyticsProperties = Record<string, string | number | boolean | null | undefined>;
 
 declare global {
@@ -38,12 +40,9 @@ export function trackEvent(name: string, properties: AnalyticsProperties = {}) {
     window.gtag("event", name, sanitizedProperties);
   }
 
-  void fetch("/api/backend/observability/events", {
+  void sendJson("/api/backend/observability/events", {
     method: "POST",
     keepalive: true,
-    headers: {
-      "Content-Type": "application/json"
-    },
     body: JSON.stringify({
       name,
       properties: sanitizedProperties,

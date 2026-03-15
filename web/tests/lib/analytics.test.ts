@@ -1,9 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const sendJson = vi.fn();
+
+vi.mock("../../lib/client-api", () => ({
+  sendJson: (...args: unknown[]) => sendJson(...args)
+}));
+
 import { GA_MEASUREMENT_ID, trackEvent, trackPageView } from "../../lib/analytics";
 
 describe("analytics", () => {
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+    sendJson.mockReset();
+    sendJson.mockResolvedValue({});
     window.gtag = vi.fn();
     Object.defineProperty(window, "location", {
       configurable: true,
@@ -28,7 +36,7 @@ describe("analytics", () => {
       prayer_slug: "gayatri-mantra",
       audio_available: true
     });
-    expect(fetch).toHaveBeenCalledWith(
+    expect(sendJson).toHaveBeenCalledWith(
       "/api/backend/observability/events",
       expect.objectContaining({
         method: "POST",

@@ -1111,6 +1111,8 @@ select:focus {
   border-radius: 16px;
   background: rgba(247, 241, 232, 0.88);
   border: 1px solid rgba(237, 227, 210, 0.95);
+  position: relative;
+  z-index: 0;
 }
 
 .prayer-audio-player__toggle {
@@ -1128,6 +1130,7 @@ select:focus {
   gap: 6px;
   align-items: flex-end;
   color: var(--vermilion-400);
+  pointer-events: none;
 }
 
 .prayer-audio-player__wave {
@@ -1148,10 +1151,15 @@ select:focus {
 
 .prayer-audio-player__range {
   appearance: none;
+  width: 100%;
   height: 10px;
   padding: 0;
   border: 0;
-  background: transparent;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vermilion-400) 0 var(--progress), var(--cream-200) var(--progress) 100%);
+  box-shadow: inset 0 0 0 1px rgba(193, 68, 14, 0.12);
+  cursor: pointer;
+  accent-color: var(--vermilion-400);
 }
 
 .prayer-audio-player__range::-webkit-slider-runnable-track {
@@ -1170,6 +1178,27 @@ select:focus {
   border: 2px solid white;
 }
 
+.prayer-audio-player__range::-moz-range-track {
+  height: 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cream-200);
+}
+
+.prayer-audio-player__range::-moz-range-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--vermilion-400);
+}
+
+.prayer-audio-player__range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: var(--vermilion-400);
+}
+
 .prayer-audio-player__times {
   display: flex;
   justify-content: space-between;
@@ -1182,6 +1211,9 @@ select:focus {
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(253, 250, 245, 0.88);
   color: var(--teak-700);
 }
 
@@ -1190,12 +1222,23 @@ select:focus {
   font-size: 0.84rem;
 }
 
+.prayer-audio-player__volume-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .prayer-audio-player__volume-range {
   appearance: none;
+  width: 100%;
   height: 8px;
   padding: 0;
   border: 0;
-  background: transparent;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vermilion-400) 0 var(--progress), var(--cream-200) var(--progress) 100%);
+  box-shadow: inset 0 0 0 1px rgba(193, 68, 14, 0.12);
+  cursor: pointer;
+  accent-color: var(--vermilion-400);
 }
 
 .prayer-audio-player__volume-range::-webkit-slider-runnable-track {
@@ -1212,6 +1255,33 @@ select:focus {
   margin-top: -4px;
   background: var(--vermilion-400);
   border: 2px solid white;
+}
+
+.prayer-audio-player__volume-range::-moz-range-track {
+  height: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cream-200);
+}
+
+.prayer-audio-player__volume-range::-moz-range-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--vermilion-400);
+}
+
+.prayer-audio-player__volume-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: var(--vermilion-400);
+}
+
+.prayer-audio-player__range:focus-visible,
+.prayer-audio-player__volume-range:focus-visible {
+  outline: 3px solid rgba(193, 68, 14, 0.2);
+  outline-offset: 4px;
 }
 
 .prayer-audio-player__speeds {
@@ -2192,14 +2262,15 @@ select:focus {
 
 .account-menu {
   position: relative;
+  z-index: 35;
 }
 
-.account-menu summary {
-  list-style: none;
-}
-
-.account-menu summary::-webkit-details-marker {
-  display: none;
+.account-menu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  border: 0;
+  background: transparent;
 }
 
 .account-menu__panel {
@@ -2214,6 +2285,20 @@ select:focus {
   display: grid;
   gap: 6px;
   z-index: 30;
+}
+
+.account-chip--button {
+  border: 1px solid var(--cream-200);
+  background: rgba(247, 241, 232, 0.9);
+}
+
+.account-chip--button:hover {
+  background: rgba(245, 221, 215, 0.44);
+}
+
+.account-chip--button:focus-visible {
+  outline: 3px solid rgba(193, 68, 14, 0.2);
+  outline-offset: 3px;
 }
 
 .account-menu__link {
@@ -2254,6 +2339,56 @@ select:focus {
   position: sticky;
   top: 84px;
   z-index: 20;
+}
+
+.app-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  gap: 16px;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 75, 42, 0.08), transparent 22%),
+    linear-gradient(180deg, rgba(253, 250, 245, 0.98), rgba(247, 241, 232, 0.98));
+  text-align: center;
+}
+
+.app-loading-screen__spinner {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 5px solid rgba(193, 68, 14, 0.12);
+  border-top-color: var(--vermilion-400);
+  border-right-color: rgba(200, 137, 42, 0.8);
+  animation: app-loading-spin 900ms linear infinite;
+}
+
+.app-loading-screen__copy {
+  display: grid;
+  gap: 6px;
+}
+
+.app-loading-screen__copy strong {
+  font-family: var(--font-display), serif;
+  font-size: 1.45rem;
+  font-weight: 400;
+  color: var(--teak-900);
+}
+
+.app-loading-screen__copy span {
+  color: var(--teak-500);
+}
+
+@keyframes app-loading-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .catalog-filter-search {
@@ -2972,6 +3107,14 @@ select:focus {
   .booking-mode-grid,
   .shared-prayer-invite {
     grid-template-columns: 1fr;
+  }
+
+  .prayer-audio-player__volume {
+    grid-template-columns: 1fr;
+  }
+
+  .prayer-audio-player__volume-value {
+    justify-self: end;
   }
 
   .site-header__inner {

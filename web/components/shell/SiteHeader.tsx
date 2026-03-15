@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { LogoutButton } from "../auth/LogoutButton";
 import { OmMark } from "../ui/OmMark";
 import { PrimaryNav } from "./PrimaryNav";
@@ -23,7 +24,12 @@ const authenticatedLinks = [
 
 export function SiteHeader({ user }: { user: UserSession | null }) {
   const pathname = usePathname();
+  const [menuState, setMenuState] = useState<{ open: boolean; pathname: string }>({
+    open: false,
+    pathname
+  });
   const initial = user?.name?.trim()?.[0]?.toUpperCase() || "P";
+  const menuOpen = menuState.open && menuState.pathname === pathname;
   const pageTitle =
     pathname === "/"
       ? "Prarthana"
@@ -51,6 +57,19 @@ export function SiteHeader({ user }: { user: UserSession | null }) {
                             ? "Onboarding"
                             : "Prarthana";
 
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuState({ open: false, pathname });
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [menuOpen, pathname]);
+
   return (
     <header className="site-header">
       <div className="site-header__inner">
@@ -71,30 +90,70 @@ export function SiteHeader({ user }: { user: UserSession | null }) {
         </div>
         <div className="site-header__actions">
           {user ? (
-            <details className="account-menu">
-              <summary className="account-chip">
+            <div className="account-menu">
+              {menuOpen ? (
+                <button
+                  type="button"
+                  className="account-menu__backdrop"
+                  aria-label="Close account menu"
+                  onClick={() => setMenuState({ open: false, pathname })}
+                />
+              ) : null}
+              <button
+                type="button"
+                className="account-chip account-chip--button"
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+                onClick={() =>
+                  setMenuState((current) =>
+                    current.open && current.pathname === pathname
+                      ? { open: false, pathname }
+                      : { open: true, pathname }
+                  )
+                }
+              >
                 <span className="account-chip__avatar" aria-hidden="true">
                   {initial}
                 </span>
                 <span className="account-chip__name">{user.name}</span>
-              </summary>
-              <div className="account-menu__panel">
-                <Link href="/bookings" className="account-menu__link">
-                  My bookings
-                </Link>
-                <Link href="/profile" className="account-menu__link">
-                  My profile
-                </Link>
-                <Link href="/plans" className="account-menu__link">
-                  Plans & billing
-                </Link>
-                <Link href="/contact" className="account-menu__link">
-                  Account support
-                </Link>
-                <div className="account-menu__divider" />
-                <LogoutButton />
-              </div>
-            </details>
+              </button>
+              {menuOpen ? (
+                <div className="account-menu__panel" role="menu">
+                  <Link
+                    href="/bookings"
+                    className="account-menu__link"
+                    onClick={() => setMenuState({ open: false, pathname })}
+                  >
+                    My bookings
+                  </Link>
+                  <Link
+                    href="/profile"
+                    className="account-menu__link"
+                    onClick={() => setMenuState({ open: false, pathname })}
+                  >
+                    My profile
+                  </Link>
+                  <Link
+                    href="/plans"
+                    className="account-menu__link"
+                    onClick={() => setMenuState({ open: false, pathname })}
+                  >
+                    Plans & billing
+                  </Link>
+                  <Link
+                    href="/contact"
+                    className="account-menu__link"
+                    onClick={() => setMenuState({ open: false, pathname })}
+                  >
+                    Account support
+                  </Link>
+                  <div className="account-menu__divider" />
+                  <div onClick={() => setMenuState({ open: false, pathname })}>
+                    <LogoutButton />
+                  </div>
+                </div>
+              ) : null}
+            </div>
           ) : (
             <>
               <Link href="/login" className="button button--secondary">

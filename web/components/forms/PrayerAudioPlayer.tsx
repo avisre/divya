@@ -52,6 +52,24 @@ export function PrayerAudioPlayer({
 
   useEffect(() => {
     const audio = audioRef.current;
+    return () => {
+      if (!audio) return;
+      try {
+        audio.pause();
+      } catch {
+        // jsdom does not implement media teardown fully.
+      }
+      audio.removeAttribute("src");
+      try {
+        audio.load();
+      } catch {
+        // jsdom does not implement media teardown fully.
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
     if (!audio) return;
     audio.volume = volume;
     audio.muted = volume === 0;
@@ -109,28 +127,7 @@ export function PrayerAudioPlayer({
   }, [currentTime, duration]);
 
   return (
-    <div
-      className="prayer-audio-player"
-      tabIndex={0}
-      role="group"
-      aria-label={`${title} audio player`}
-      onKeyDown={(event) => {
-        if (event.key === " " || event.key === "Spacebar") {
-          event.preventDefault();
-          void togglePlayback();
-          return;
-        }
-        if (event.key === "ArrowRight") {
-          event.preventDefault();
-          seekTo(Math.min(duration, currentTime + 10));
-          return;
-        }
-        if (event.key === "ArrowLeft") {
-          event.preventDefault();
-          seekTo(Math.max(0, currentTime - 10));
-        }
-      }}
-    >
+    <div className="prayer-audio-player" role="group" aria-label={`${title} audio player`}>
       <audio ref={audioRef} preload="none" src={src} />
       <button
         type="button"
@@ -169,7 +166,10 @@ export function PrayerAudioPlayer({
         </div>
       </div>
       <label className="prayer-audio-player__volume">
-        <span className="prayer-audio-player__volume-label">Volume</span>
+        <span className="prayer-audio-player__volume-label">
+          <span aria-hidden="true">🔊</span>
+          <span>Volume</span>
+        </span>
         <input
           aria-label="Prayer audio volume"
           className="prayer-audio-player__volume-range"

@@ -4,6 +4,7 @@ export type UxFeatureKey = "shared_prayer" | "gift_puja" | "learning_path" | "sa
 
 export type UxState = {
   showWelcomeOverlay: boolean;
+  welcomeSeenAt?: string;
   onboardingStartedAt?: string;
   onboardingSkippedAt?: string;
   onboardingSelection?: "pray" | "book" | "together" | "learn";
@@ -23,6 +24,10 @@ export type UxState = {
   learningPromptDismissedAt?: string;
   videoPromptDismissedAt?: string;
   giftPromptDismissedAt?: string;
+  prayerPaywallDismissedAt?: string;
+  waitlistPaywallDismissedAt?: string;
+  sacredVideoPaywallDismissedAt?: string;
+  prayerCompletionPromptDismissedAt?: string;
   sharedPrayerCreatedAt?: string;
   learningPathOpenedAt?: string;
   giftStartedAt?: string;
@@ -77,4 +82,11 @@ export function consumePendingOnboarding() {
   if (!raw) return null;
   window.localStorage.removeItem(PENDING_ONBOARDING_KEY);
   return raw;
+}
+
+export function wasDismissedWithinDays(value: string | undefined, days: number) {
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return false;
+  return Date.now() - timestamp < days * 24 * 60 * 60 * 1000;
 }

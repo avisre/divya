@@ -24,13 +24,22 @@ const prayer: Prayer = {
 };
 
 describe("PrayerCard", () => {
-  it("preserves the pray-with-family entry point", () => {
-    render(<PrayerCard prayer={prayer} />);
+  it("preserves the pray-with-family entry point for signed-in users", () => {
+    render(<PrayerCard prayer={prayer} isAuthenticated />);
 
     expect(screen.getByRole("link", { name: /Pray with family/i })).toHaveAttribute(
       "href",
       "/sessions/create?prayer=prayer-1"
     );
     expect(screen.getByText("Audio available")).toBeInTheDocument();
+  });
+
+  it("routes guests to registration for shared prayer", () => {
+    render(<PrayerCard prayer={prayer} isAuthenticated={false} />);
+
+    expect(screen.getByRole("link", { name: /Sign up to pray with family/i })).toHaveAttribute(
+      "href",
+      "/register"
+    );
   });
 });

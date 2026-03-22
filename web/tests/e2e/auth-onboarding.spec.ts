@@ -12,17 +12,14 @@ async function registerUser(page: Page) {
   await page.getByRole("button", { name: "Create account" }).click();
 }
 
-test("registration shows onboarding and routes into the first prayer flow", async ({ page }) => {
+test("registration shows the welcome screen and routes into the prayer library", async ({ page }) => {
   await registerUser(page);
 
-  await expect(page).toHaveURL(/\/onboarding/);
-  await expect(page.getByRole("heading", { name: /Where is your family based/i })).toBeVisible();
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: /Choose the deities you want to keep closest/i })).toBeVisible();
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: /Begin with one prayer today/i })).toBeVisible();
-  await page.getByRole("button", { name: /Open prayer now/i }).click();
+  await expect(page).toHaveURL(/\/welcome/);
+  await expect(page.getByRole("heading", { name: /Namaste/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Explore prayers/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Open prayer library/i })).toBeVisible();
+  await page.getByRole("link", { name: /Open prayer library/i }).click();
 
-  await expect(page).toHaveURL(/\/prayers\//);
-  await expect(page.getByRole("link", { name: /Start a shared session/i })).toBeVisible();
+  await expect(page).toHaveURL(/\/prayers/);
 });

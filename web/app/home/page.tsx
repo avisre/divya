@@ -7,6 +7,7 @@ import { PrayerCard } from "../../components/content/PrayerCard";
 import { PujaCard } from "../../components/content/PujaCard";
 import { Section } from "../../components/content/Section";
 import { HomeDiscovery } from "../../components/ux/HomeDiscovery";
+import { GuidedFlowResumeBanner } from "../../components/ux/GuidedFlowResumeBanner";
 import { Button } from "../../components/ui/Button";
 import {
   getBookings,
@@ -19,6 +20,7 @@ import {
   getStats,
   getUserPrayerSessions
 } from "../../lib/data";
+import { getLearnFestivalEntry } from "../../lib/learn";
 import { getContinuePracticeHref } from "../../lib/gamification";
 import { buildPrivateMetadata } from "../../lib/seo";
 import { requireSession } from "../../lib/session";
@@ -27,6 +29,23 @@ export const metadata: Metadata = buildPrivateMetadata({
   title: "Home",
   description: "Private devotional dashboard for today's prayer rhythm, bookings, and family activity."
 });
+
+function getFestivalBridge(panchang: Awaited<ReturnType<typeof getPanchangToday>> | null) {
+  const upcomingFestival = panchang?.festivalPrep?.find((item) => item.startsInDays >= 0 && item.startsInDays <= 3);
+  if (!upcomingFestival) {
+    return null;
+  }
+
+  const label = upcomingFestival.name?.en || upcomingFestival.slug || "Festival";
+  const learnEntry =
+    getLearnFestivalEntry(upcomingFestival.slug) ||
+    getLearnFestivalEntry(upcomingFestival.name?.en || "");
+  return {
+    label,
+    startsInDays: upcomingFestival.startsInDays,
+    learnSlug: learnEntry?.slug || null
+  };
+}
 
 export default async function HomePage() {
   const session = await requireSession("/home");
@@ -59,6 +78,7 @@ export default async function HomePage() {
     { label: "Learning modules", value: `${stats?.modulesCompletedCount || 0}` }
   ];
   const showZeroState = (stats?.daysPracticedThisMonth || 0) === 0;
+  const festivalBridge = getFestivalBridge(panchang);
 
   return (
     <div className="page-stack">
@@ -116,12 +136,29 @@ export default async function HomePage() {
           </div>
         }
       />
+      <GuidedFlowResumeBanner />
       {panchang ? (
         <Section
           title={"Today\u2019s panchang"}
           subtitle="Let the home page open with the temple's daily rhythm before recommendations or account nudges."
         >
           <PanchangSummary panchang={panchang} />
+          {festivalBridge ? (
+            <div data-testid="festival-nudge" className="festival-bridge">
+              <span>
+                {festivalBridge.label} is in {festivalBridge.startsInDays} day{festivalBridge.startsInDays === 1 ? "" : "s"}.
+              </span>
+              <Link href="/pujas">Book an Abhishekam for your family {"->"}</Link>
+              {festivalBridge.learnSlug ? (
+                <span className="festival-bridge__learn">
+                  Not sure what {festivalBridge.label} is about?{" "}
+                  <Link data-testid="festival-nudge-learn" href={`/learn/${festivalBridge.learnSlug}`}>
+                    Read the story {"->"}
+                  </Link>
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </Section>
       ) : null}
       {showZeroState ? (
@@ -195,7 +232,7 @@ export default async function HomePage() {
       >
         <div className="catalog-grid catalog-grid--two">
           {featuredPrayers.slice(0, 2).map((prayer) => (
-            <PrayerCard key={prayer._id} prayer={prayer} />
+            <PrayerCard key={prayer._id} prayer={prayer} isAuthenticated />
           ))}
           {pujas.slice(0, 2).map((puja) => (
             <PujaCard key={puja._id} puja={puja} currency={session.user.currency || "USD"} />

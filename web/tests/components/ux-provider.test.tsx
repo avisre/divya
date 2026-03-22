@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { UxProvider, useUx } from "../../components/ux/UxProvider";
 import { markPendingOnboarding } from "../../lib/ux-state";
@@ -28,6 +29,17 @@ function UxProbe() {
   );
 }
 
+function PrayerOpenProbe() {
+  const { markPrayerOpened, ready, state } = useUx();
+
+  useEffect(() => {
+    if (!ready) return;
+    markPrayerOpened("gayatri-mantra");
+  }, [markPrayerOpened, ready]);
+
+  return <span>{state.prayerOpenCount}</span>;
+}
+
 describe("UxProvider onboarding", () => {
   it("hydrates onboarding state from the pending marker", async () => {
     markPendingOnboarding();
@@ -48,6 +60,25 @@ describe("UxProvider onboarding", () => {
     await waitFor(() => {
       expect(screen.getByText("ready")).toBeInTheDocument();
       expect(screen.getByText("started")).toBeInTheDocument();
+    });
+  });
+
+  it("keeps markPrayerOpened stable for consumer effects", async () => {
+    render(
+      <UxProvider
+        user={{
+          id: "user-2",
+          name: "Dev Nair",
+          email: "dev@example.com",
+          role: "user"
+        }}
+      >
+        <PrayerOpenProbe />
+      </UxProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("1")).toBeInTheDocument();
     });
   });
 });

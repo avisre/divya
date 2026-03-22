@@ -6,35 +6,28 @@ vi.mock("../../lib/client-api", () => ({
   sendJson: (...args: unknown[]) => sendJson(...args)
 }));
 
-import { GA_MEASUREMENT_ID, trackEvent, trackPageView } from "../../lib/analytics";
+import { trackEvent, trackPageView } from "../../lib/analytics";
 
 describe("analytics", () => {
   beforeEach(() => {
     sendJson.mockReset();
     sendJson.mockResolvedValue({});
-    window.gtag = vi.fn();
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: {
-        href: "http://localhost:3000/home"
-      }
-    });
-    Object.defineProperty(document, "title", {
-      configurable: true,
-      value: "Home | Prarthana"
-    });
+    window.plausible = vi.fn();
+    window.history.replaceState({}, "", "/home");
   });
 
-  it("tracks events in both GA and backend observability", async () => {
-    trackEvent("prayer_opened", {
+  it("tracks events in Plausible and backend observability", () => {
+    trackEvent("Prayer Opened", {
       prayer_slug: "gayatri-mantra",
       audio_available: true,
       ignored: undefined
     });
 
-    expect(window.gtag).toHaveBeenCalledWith("event", "prayer_opened", {
-      prayer_slug: "gayatri-mantra",
-      audio_available: true
+    expect(window.plausible).toHaveBeenCalledWith("Prayer Opened", {
+      props: {
+        prayer_slug: "gayatri-mantra",
+        audio_available: true
+      }
     });
     expect(sendJson).toHaveBeenCalledWith(
       "/api/backend/observability/events",
@@ -45,13 +38,11 @@ describe("analytics", () => {
     );
   });
 
-  it("tracks page views through gtag config", () => {
+  it("tracks page views through Plausible", () => {
     trackPageView("/prayers/gayatri-mantra");
 
-    expect(window.gtag).toHaveBeenCalledWith("config", GA_MEASUREMENT_ID, {
-      page_path: "/prayers/gayatri-mantra",
-      page_location: "http://localhost:3000/home",
-      page_title: "Home | Prarthana"
+    expect(window.plausible).toHaveBeenCalledWith("pageview", {
+      u: new URL("/prayers/gayatri-mantra", window.location.origin).toString()
     });
   });
 });

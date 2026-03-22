@@ -8,12 +8,19 @@ import {
 } from "../../lib/presentation";
 import type { Prayer } from "../../lib/types";
 
-export function PrayerCard({ prayer }: { prayer: Prayer }) {
+export function PrayerCard({
+  prayer,
+  isAuthenticated = false
+}: {
+  prayer: Prayer;
+  isAuthenticated?: boolean;
+}) {
   const deityName = prayer.deity?.name?.en || prayer.title.en;
   const themeStyle = getDeityThemeStyle(deityName);
   const deitySymbol = getDeitySymbol(deityName);
   const prayerType = getPrayerTypeMeta(prayer.type);
   const difficulty = getPrayerDifficultyMeta(prayer.difficulty);
+  const isStarterPrayer = /gayatri/i.test(prayer.title.en);
   const starterLine =
     difficulty.label === "BEGINNER"
       ? "Good starting prayer - no Sanskrit knowledge needed"
@@ -22,7 +29,11 @@ export function PrayerCard({ prayer }: { prayer: Prayer }) {
         : "A fuller prayer that becomes easier with steady repetition";
 
   return (
-    <article className="surface-card prayer-card" style={themeStyle}>
+    <article
+      className="surface-card prayer-card"
+      style={themeStyle}
+      data-guided-target={isStarterPrayer ? "starter-prayer-card" : undefined}
+    >
       <div className="prayer-card__tint" />
       <div className="surface-card__meta prayer-card__meta">
         <span className="pill pill--soft">{prayerType.label}</span>
@@ -66,12 +77,19 @@ export function PrayerCard({ prayer }: { prayer: Prayer }) {
           Open prayer
         </Button>
       </div>
-      <a
-        className="inline-link prayer-card__family-link"
-        href={`/sessions/create?prayer=${encodeURIComponent(prayer._id)}`}
-      >
-        Pray with family {"->"}
-      </a>
+      {isAuthenticated ? (
+        <a
+          data-testid="pray-with-family-link"
+          className="inline-link prayer-card__family-link"
+          href={`/sessions/create?prayer=${encodeURIComponent(prayer._id)}`}
+        >
+          Pray with family {"->"}
+        </a>
+      ) : (
+        <a data-testid="pray-with-family-link" className="inline-link prayer-card__family-link" href="/register">
+          Sign up to pray with family
+        </a>
+      )}
     </article>
   );
 }

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookingPanel } from "../../../components/forms/BookingPanel";
 import { Hero } from "../../../components/content/Hero";
 import { MetricGrid } from "../../../components/content/MetricGrid";
 import { Section } from "../../../components/content/Section";
 import { StructuredData } from "../../../components/content/StructuredData";
-import { formatPrice } from "../../../lib/format";
+import { DEFAULT_DISPLAY_CURRENCY, formatPrice, formatPujaAvailability } from "../../../lib/format";
+import { getLearnPujaEntry } from "../../../lib/learn";
 import { getPuja } from "../../../lib/data";
 import { getOptionalSession } from "../../../lib/session";
 import {
@@ -22,7 +24,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const puja = await getPuja(id, "USD").catch(() => null);
+  const puja = await getPuja(id, DEFAULT_DISPLAY_CURRENCY).catch(() => null);
 
   if (!puja) {
     return buildPublicMetadata({
@@ -50,7 +52,7 @@ export default async function PujaDetailPage({
   const { id } = await params;
   const [session, puja] = await Promise.all([
     getOptionalSession(),
-    getPuja(id, "USD").catch(() => null)
+    getPuja(id, DEFAULT_DISPLAY_CURRENCY).catch(() => null)
   ]);
 
   if (!puja) {
@@ -59,6 +61,7 @@ export default async function PujaDetailPage({
 
   const templeVisual = getTempleVisual(puja.temple);
   const benefitCards = getPujaBenefitCards(puja);
+  const learnEntry = getLearnPujaEntry(puja);
 
   return (
     <div className="page-stack">
@@ -85,12 +88,15 @@ export default async function PujaDetailPage({
               items={[
                 {
                   label: "Sacred amount",
-                  value: formatPrice(puja.displayPrice?.amount, puja.displayPrice?.currency || "USD")
+                  value: formatPrice(
+                    puja.displayPrice?.amount,
+                    puja.displayPrice?.currency || DEFAULT_DISPLAY_CURRENCY
+                  )
                 },
                 { label: "Duration", value: `${puja.duration || 0} min` },
                 {
-                  label: "Temple status",
-                  value: puja.isWaitlistOnly ? "Join sacred waitlist" : "Available"
+                  label: "Availability",
+                  value: formatPujaAvailability(puja.estimatedWaitWeeks)
                 }
               ]}
             />
@@ -150,11 +156,31 @@ export default async function PujaDetailPage({
           </div>
         </div>
       </Section>
+      {learnEntry ? (
+        <Section
+          dataTestId="puja-learn-section"
+          title={`What happens during an ${puja.name.en}?`}
+          subtitle="A short explanation before you decide whether to book."
+        >
+          <div className="surface-card learn-context-card">
+            <p data-testid="puja-learn-subtitle">{learnEntry.subtitle}</p>
+            <div className="card-actions">
+              <Link data-testid="puja-learn-link" href={`/learn/${learnEntry.slug}`} className="inline-link">
+                Read more {"->"}
+              </Link>
+            </div>
+          </div>
+        </Section>
+      ) : null}
       <Section
         title="Join the sacred waitlist"
         subtitle="Submit for yourself or gift the offering as an act of care for someone else."
       >
-        <BookingPanel puja={puja} isAuthenticated={Boolean(session)} />
+        <BookingPanel
+          puja={puja}
+          isAuthenticated={Boolean(session)}
+          currentTier={session?.user.subscription?.tier || "free"}
+        />
       </Section>
     </div>
   );

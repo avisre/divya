@@ -5,6 +5,7 @@ import { Section } from "../../components/content/Section";
 import { StructuredData } from "../../components/content/StructuredData";
 import { PujasPageTracker } from "../../components/ux/PujasPageTracker";
 import { getPujas, getTemple } from "../../lib/data";
+import { DEFAULT_DISPLAY_CURRENCY } from "../../lib/format";
 import { buildBreadcrumbSchema, buildPublicMetadata } from "../../lib/seo";
 
 export const metadata: Metadata = buildPublicMetadata({
@@ -16,10 +17,9 @@ export const metadata: Metadata = buildPublicMetadata({
 
 export default async function PujasPage() {
   const [pujas, temple] = await Promise.all([
-    getPujas("USD").catch(() => []),
+    getPujas(DEFAULT_DISPLAY_CURRENCY).catch(() => []),
     getTemple().catch(() => null)
   ]);
-  const familiesCount = pujas.reduce((count, puja) => count + Number(puja.waitlistCount || 0), 0);
 
   return (
     <div className="page-stack">
@@ -40,13 +40,13 @@ export default async function PujasPage() {
         <span>Temple coordinated directly with the Tantri</span>
         <span>Video delivered within 48 hours of completion</span>
         <span>Booking records stay private to your account</span>
-        <span>{familiesCount} families have booked through Prarthana</span>
+        <span>Family names are spoken during the temple sankalpa</span>
       </div>
       <Section
         title="Temple offerings"
         subtitle="Filter by time, price, and popularity without losing the sacred weight of the offering catalog."
       >
-        <PujasCatalogClient pujas={pujas} temple={temple} currency="USD" />
+        <PujasCatalogClient pujas={pujas} temple={temple} currency={DEFAULT_DISPLAY_CURRENCY} />
       </Section>
     </div>
   );

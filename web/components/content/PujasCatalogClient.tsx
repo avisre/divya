@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatPrice } from "../../lib/format";
+import { formatPrice, formatPujaAvailability } from "../../lib/format";
 import { getTempleVisual } from "../../lib/presentation";
 import type { Puja, Temple } from "../../lib/types";
 import { Button } from "../ui/Button";
 import { PujaCard } from "./PujaCard";
 
 const durationFilters = ["all", "short", "medium", "long"] as const;
+// TODO: replace with dynamic price thresholds from config.
 const priceFilters = ["all", "under-50", "50-100", "100-plus"] as const;
 const sortOptions = ["popular", "price", "duration"] as const;
 
@@ -57,6 +58,9 @@ export function PujasCatalogClient({
 
   const [featured, ...remaining] = filteredPujas;
   const heroVisual = getTempleVisual(featured?.temple || temple);
+  const underFiftyLabel = `Under ${formatPrice(50, currency)}`;
+  const fiftyToHundredLabel = `${formatPrice(50, currency)}-${formatPrice(100, currency)}`;
+  const hundredPlusLabel = `${formatPrice(100, currency)}+`;
 
   return (
     <div className="page-stack">
@@ -81,13 +85,13 @@ export function PujasCatalogClient({
               All prices
             </button>
             <button type="button" className={`filter-pill ${price === "under-50" ? "filter-pill--active" : ""}`} onClick={() => setPrice("under-50")}>
-              Under $50
+              {underFiftyLabel}
             </button>
             <button type="button" className={`filter-pill ${price === "50-100" ? "filter-pill--active" : ""}`} onClick={() => setPrice("50-100")}>
-              $50-$100
+              {fiftyToHundredLabel}
             </button>
             <button type="button" className={`filter-pill ${price === "100-plus" ? "filter-pill--active" : ""}`} onClick={() => setPrice("100-plus")}>
-              $100+
+              {hundredPlusLabel}
             </button>
           </div>
           <label className="field catalog-filter-select">
@@ -102,7 +106,10 @@ export function PujasCatalogClient({
       </div>
 
       {featured ? (
-        <div className="surface-card featured-puja">
+        <div
+          className="surface-card featured-puja"
+          data-guided-target={/abhishekam/i.test(featured.name.en) ? "starter-puja-card" : undefined}
+        >
           <figure className="media-frame media-frame--featured">
             <img src={heroVisual.src} alt={heroVisual.alt} className="media-frame__image" />
           </figure>
@@ -114,7 +121,8 @@ export function PujasCatalogClient({
               <strong>{formatPrice(featured.displayPrice?.amount, featured.displayPrice?.currency || currency)}</strong>
               <span>{featured.duration || 0} min</span>
             </div>
-            <p className="muted">{featured.waitlistCount || 0} families have booked this offering.</p>
+            <p className="muted">Availability: {formatPujaAvailability(featured.estimatedWaitWeeks)}</p>
+            <p className="muted">48-hour video delivery after the ceremony is completed.</p>
             <div className="card-actions">
               <Button href={`/pujas/${featured._id}`}>View puja</Button>
               <Button tone="secondary" href="/temple">

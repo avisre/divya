@@ -58,6 +58,65 @@ function normalizeTimezone(value) {
   return value.trim();
 }
 
+function normalizeOptionalString(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+}
+
+function normalizeDateValue(value) {
+  if (!value) return null;
+  const next = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(next.getTime()) ? null : next;
+}
+
+function normalizeGuidedFlow(value, current = {}) {
+  const input = value && typeof value === "object" ? value : {};
+  const source = current && typeof current === "object" ? current : {};
+  const currentStep = Math.min(
+    5,
+    Math.max(
+      1,
+      Number(
+        input.currentStep !== undefined ? input.currentStep : source.currentStep || 1
+      ) || 1
+    )
+  );
+  const completedStepsSource = Array.isArray(input.completedSteps)
+    ? input.completedSteps
+    : Array.isArray(source.completedSteps)
+      ? source.completedSteps
+      : [];
+  const completedSteps = [...new Set(completedStepsSource
+    .map((step) => Number(step))
+    .filter((step) => Number.isInteger(step) && step >= 1 && step <= 5))]
+    .sort((left, right) => left - right);
+
+  return {
+    active:
+      input.active !== undefined ? Boolean(input.active) : Boolean(source.active),
+    currentStep,
+    completedSteps,
+    startedAt: normalizeDateValue(
+      input.startedAt !== undefined ? input.startedAt : source.startedAt
+    ),
+    completedAt: normalizeDateValue(
+      input.completedAt !== undefined ? input.completedAt : source.completedAt
+    ),
+    exitedAt: normalizeDateValue(
+      input.exitedAt !== undefined ? input.exitedAt : source.exitedAt
+    ),
+    exitedOnStep:
+      input.exitedOnStep !== undefined
+        ? Number.isInteger(Number(input.exitedOnStep))
+          ? Number(input.exitedOnStep)
+          : null
+        : Number.isInteger(Number(source.exitedOnStep))
+          ? Number(source.exitedOnStep)
+          : null
+  };
+}
+
 function normalizeContactCategory(value) {
   const raw = String(value || "general").trim().toLowerCase();
   return CONTACT_CATEGORY_ALIASES[raw] || raw;
@@ -76,6 +135,22 @@ function serializeUserProfile(user) {
     country: user.country,
     timezone: user.timezone || "",
     currency: user.currency,
+    welcomeSeenAt: user.welcomeSeenAt,
+    familyName: user.familyName || "",
+    familyNameSkipped: Boolean(user.familyNameSkipped),
+    guidedFlow: user.guidedFlow
+      ? {
+          active: Boolean(user.guidedFlow.active),
+          currentStep: Number(user.guidedFlow.currentStep || 1),
+          completedSteps: Array.isArray(user.guidedFlow.completedSteps)
+            ? user.guidedFlow.completedSteps
+            : [],
+          startedAt: user.guidedFlow.startedAt || null,
+          completedAt: user.guidedFlow.completedAt || null,
+          exitedAt: user.guidedFlow.exitedAt || null,
+          exitedOnStep: user.guidedFlow.exitedOnStep ?? null
+        }
+      : null,
     profilePicture: user.profilePicture,
     onboarding: user.onboarding,
     preferredDeity: user.preferredDeity,
@@ -110,12 +185,34 @@ export async function getProfile(req, res, next) {
 
 export async function updateProfile(req, res, next) {
   try {
-    const fields = ["name", "country", "timezone", "currency", "preferredLanguage", "prayerReminders"];
+    const fields = [
+      "name",
+      "country",
+      "timezone",
+      "currency",
+      "preferredLanguage",
+      "prayerReminders",
+      "welcomeSeenAt",
+      "familyName",
+      "familyNameSkipped"
+    ];
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        req.user[field] = field === "timezone" ? normalizeTimezone(req.body[field]) : req.body[field];
+        if (field === "timezone") {
+          req.user[field] = normalizeTimezone(req.body[field]);
+          return;
+        }
+        if (field === "familyName") {
+          req.user[field] = normalizeOptionalString(req.body[field]);
+          return;
+        }
+        req.user[field] = req.body[field];
       }
     });
+
+    if (req.body.guidedFlow !== undefined) {
+      req.user.guidedFlow = normalizeGuidedFlow(req.body.guidedFlow, req.user.guidedFlow || {});
+    }
     await req.user.save();
     return res.json(serializeUserProfile(req.user));
   } catch (error) {

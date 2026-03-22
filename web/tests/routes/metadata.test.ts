@@ -7,6 +7,7 @@ describe("route metadata", () => {
     const result = robots();
     const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
 
+    expect(rules[0]?.allow).toContain("/learn");
     expect(rules[0]?.allow).toContain("/temple");
     expect(rules[0]?.disallow).toContain("/profile");
     expect(result.sitemap).toContain("/sitemap.xml");
@@ -16,6 +17,7 @@ describe("route metadata", () => {
     const result = sitemap();
     const urls = result.map((item) => item.url);
 
+    expect(urls.some((url) => url.includes("/learn"))).toBe(true);
     expect(urls.some((url) => url.includes("/temple"))).toBe(true);
     expect(urls.some((url) => url.includes("/profile"))).toBe(false);
     expect(urls.some((url) => url.includes("/login"))).toBe(false);

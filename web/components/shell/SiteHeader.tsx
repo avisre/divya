@@ -4,26 +4,30 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogoutButton } from "../auth/LogoutButton";
+import { useGuidedFlow } from "../ux/GuidedFlowProvider";
 import { OmMark } from "../ui/OmMark";
 import { PrimaryNav } from "./PrimaryNav";
 import type { UserSession } from "../../lib/types";
 
 const publicLinks = [
-  { href: "/prayers", label: "Prayers" },
-  { href: "/temple", label: "Temple" },
-  { href: "/pujas", label: "Pujas" }
+  { href: "/prayers", label: "Prayers", dataTestId: "nav-prayers" },
+  { href: "/temple", label: "Temple", dataTestId: "nav-temple" },
+  { href: "/learn", label: "Learn", dataTestId: "nav-learn" },
+  { href: "/pujas", label: "Pujas", dataTestId: "nav-pujas" }
 ];
 
 const authenticatedLinks = [
-  { href: "/home", label: "Home" },
-  { href: "/prayers", label: "Prayers" },
-  { href: "/temple", label: "Temple" },
-  { href: "/pujas", label: "Pujas" },
-  { href: "/sessions/create", label: "Sessions" }
+  { href: "/home", label: "Home", dataTestId: "nav-home" },
+  { href: "/prayers", label: "Prayers", dataTestId: "nav-prayers" },
+  { href: "/temple", label: "Temple", dataTestId: "nav-temple" },
+  { href: "/learn", label: "Learn", dataTestId: "nav-learn" },
+  { href: "/pujas", label: "Pujas", dataTestId: "nav-pujas" },
+  { href: "/sessions/create", label: "Sessions", dataTestId: "nav-sessions" }
 ];
 
 export function SiteHeader({ user }: { user: UserSession | null }) {
   const pathname = usePathname();
+  const { hasResumeLink, resumeGuidedFlow, resumeStep } = useGuidedFlow();
   const [menuState, setMenuState] = useState<{ open: boolean; pathname: string }>({
     open: false,
     pathname
@@ -41,6 +45,8 @@ export function SiteHeader({ user }: { user: UserSession | null }) {
             ? "Prayers"
             : pathname.startsWith("/temple")
               ? "Temple"
+              : pathname.startsWith("/learn")
+                ? "Learn"
               : pathname.startsWith("/pujas/")
                 ? "Puja"
                 : pathname.startsWith("/pujas")
@@ -102,6 +108,7 @@ export function SiteHeader({ user }: { user: UserSession | null }) {
               <button
                 type="button"
                 className="account-chip account-chip--button"
+                data-testid="user-menu"
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
                 onClick={() =>
@@ -147,9 +154,22 @@ export function SiteHeader({ user }: { user: UserSession | null }) {
                   >
                     Account support
                   </Link>
+                  {hasResumeLink ? (
+                    <button
+                      type="button"
+                      data-testid="guided-flow-reentry"
+                      className="account-menu__link account-menu__button-link"
+                      onClick={() => {
+                        setMenuState({ open: false, pathname });
+                        void resumeGuidedFlow();
+                      }}
+                    >
+                      Resume introduction (step {resumeStep} of 5)
+                    </button>
+                  ) : null}
                   <div className="account-menu__divider" />
                   <div onClick={() => setMenuState({ open: false, pathname })}>
-                    <LogoutButton />
+                    <LogoutButton dataTestId="logout" />
                   </div>
                 </div>
               ) : null}

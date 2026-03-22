@@ -139,6 +139,7 @@ export type Temple = {
 export type Puja = {
   _id: string;
   id?: string;
+  slug?: string;
   temple?: Temple;
   deity?: Deity;
   name: LocalizedText;
@@ -299,6 +300,40 @@ export type BillingCatalog = {
   } | null;
 };
 
+export type LearnCategory =
+  | "deities"
+  | "festivals"
+  | "customs"
+  | "sacred-texts"
+  | "kerala-traditions";
+
+export type LearnEntry = {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string;
+  category: LearnCategory;
+  bodyMd: string;
+  connectToPractice: string;
+  relatedPrayerSlugs: string[];
+  relatedPujaIds: string[];
+  relatedEntryIds: string[];
+  deityImageSlug: string | null;
+  readingTimeMinutes: number;
+  isFeatured: boolean;
+  tier: "free" | "bhakt";
+};
+
+export type GuidedFlowState = {
+  active: boolean;
+  currentStep: number;
+  completedSteps: number[];
+  startedAt: string | null;
+  completedAt: string | null;
+  exitedAt: string | null;
+  exitedOnStep: number | null;
+};
+
 export type UserSession = {
   id: string;
   name: string;
@@ -307,6 +342,10 @@ export type UserSession = {
   country?: string;
   timezone?: string;
   currency?: string;
+  welcomeSeenAt?: string;
+  familyName?: string;
+  familyNameSkipped?: boolean;
+  guidedFlow?: GuidedFlowState | null;
   isGuest?: boolean;
   onboarding?: {
     prayerFrequency?: string;

@@ -17,6 +17,7 @@ web/*.d.ts
 web/*.tsbuildinfo
 web/playwright-report/
 web/test-results/
+web/.local-dev-backend.json
 androidApp/build/
 shared/build/
 iosApp/.build/

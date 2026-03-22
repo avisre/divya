@@ -1,15 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { redirectToExternal } from "../../lib/browser";
 import { sendJson } from "../../lib/client-api";
+import { getTempleVisual } from "../../lib/presentation";
 import {
   canManageSubscription,
   formatBillingPrice,
   getBillingPrice
 } from "../../lib/subscription-plans";
-import type { BillingCatalog, BillingInterval, Subscription } from "../../lib/types";
+import type {
+  BillingCatalog,
+  BillingInterval,
+  BillingPlan,
+  BillingPriceOption,
+  Subscription
+} from "../../lib/types";
 import { Button } from "../ui/Button";
 import { StatusStrip } from "../ui/StatusStrip";
 
@@ -22,6 +29,27 @@ function subscriptionStatusLabel(subscription?: Subscription | null) {
   const raw = String(subscription?.status || "inactive").trim().toLowerCase();
   if (!raw || raw === "inactive") return "No active paid plan yet.";
   return raw.replace(/_/g, " ");
+}
+
+function formatSavings(monthly: BillingPriceOption | null, annual: BillingPriceOption | null) {
+  if (!monthly || !annual) return null;
+  const savings = monthly.amountCents * 12 - annual.amountCents;
+  if (savings <= 0) return null;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: annual.currency.toUpperCase(),
+    maximumFractionDigits: 0
+  }).format(savings / 100);
+}
+
+function annualState(plan: BillingPlan) {
+  const monthly = getBillingPrice(plan, "month");
+  const yearly = getBillingPrice(plan, "year");
+  return {
+    monthly,
+    yearly,
+    savings: formatSavings(monthly, yearly)
+  };
 }
 
 export function BillingPlansClient({
@@ -37,10 +65,26 @@ export function BillingPlansClient({
   const [interval, setInterval] = useState<BillingInterval>("month");
   const [status, setStatus] = useState<string>("");
   const [pendingKey, setPendingKey] = useState<string>("");
+  const [showSevaPreview, setShowSevaPreview] = useState(false);
+  const planRefs = useRef<Partial<Record<BillingPlan["tier"], HTMLElement | null>>>({});
 
   const checkoutState = searchParams.get("checkout");
+  const highlightParam = searchParams.get("highlight");
+  const highlightedTier =
+    highlightParam === "bhakt" || highlightParam === "seva" ? highlightParam : null;
   const managePaidSubscription = useMemo(() => canManageSubscription(subscription), [subscription]);
   const currentTier = subscription?.tier || "free";
+  const previewTempleVisual = getTempleVisual(null);
+
+  useEffect(() => {
+    if (!highlightedTier) return;
+    const target = planRefs.current[highlightedTier];
+    if (!target) return;
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }, [highlightedTier, interval]);
 
   async function handleCheckout(tier: "bhakt" | "seva") {
     if (!authenticated) return;
@@ -110,6 +154,7 @@ export function BillingPlansClient({
         <div className="billing-cycle-toggle" role="tablist" aria-label="Billing cycle">
           <button
             type="button"
+            data-testid="billing-toggle-monthly"
             className={interval === "month" ? "billing-cycle-toggle__pill billing-cycle-toggle__pill--active" : "billing-cycle-toggle__pill"}
             onClick={() => setInterval("month")}
           >
@@ -117,6 +162,7 @@ export function BillingPlansClient({
           </button>
           <button
             type="button"
+            data-testid="billing-toggle-annual"
             className={interval === "year" ? "billing-cycle-toggle__pill billing-cycle-toggle__pill--active" : "billing-cycle-toggle__pill"}
             onClick={() => setInterval("year")}
           >
@@ -132,12 +178,12 @@ export function BillingPlansClient({
             <h3>
               {currentTier === "free"
                 ? "Free"
-                : `${currentTier === "bhakt" ? "Bhakt" : "Seva"}${subscription?.interval ? ` · ${subscription.interval}` : ""}`}
+                : `${currentTier === "bhakt" ? "Bhakt" : "Seva"}${subscription?.interval ? ` - ${subscription.interval}` : ""}`}
             </h3>
             <p className="muted">
               Status: {subscriptionStatusLabel(subscription)}
               {subscription?.cancelAtPeriodEnd && subscription?.currentPeriodEnd
-                ? ` · ends after ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-GB")}`
+                ? ` - ends after ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-GB")}`
                 : ""}
             </p>
           </div>
@@ -157,11 +203,21 @@ export function BillingPlansClient({
           const isCurrentTier = currentTier === plan.tier;
           const checkoutDisabled = !catalog.enabled || !catalog.subscriptionsConfigured || !price?.active;
           const actionKey = `${plan.tier}:${interval}`;
+          const annualPricing = annualState(plan);
+          const showAnnualSavings = interval === "year" && Boolean(annualPricing.savings);
+          const showAnnualNotice =
+            interval === "year" &&
+            Boolean(annualPricing.yearly) &&
+            !annualPricing.yearly?.active;
 
           return (
             <article
               key={plan.tier}
-              className={`surface-card billing-plan-card ${isCurrentTier ? "billing-plan-card--current" : ""}`}
+              ref={(element) => {
+                planRefs.current[plan.tier] = element;
+              }}
+              data-testid={`plan-card-${plan.tier}`}
+              className={`surface-card billing-plan-card ${isCurrentTier ? "billing-plan-card--current" : ""} ${highlightedTier === plan.tier ? "billing-plan-card--highlight" : ""}`}
             >
               <div className="surface-card__meta">
                 <span className="pill pill--soft">{plan.name}</span>
@@ -170,22 +226,73 @@ export function BillingPlansClient({
               <h3>{plan.name}</h3>
               <p>{plan.summary}</p>
               {price ? (
-                <div className="billing-plan-card__price">
-                  <strong>{formatBillingPrice(price)}</strong>
-                  <span>/{interval === "year" ? "year" : "month"}</span>
+                <div className="billing-plan-card__price-row">
+                  <div
+                    className="billing-plan-card__price"
+                    data-testid={plan.tier === "bhakt" && interval === "year" ? "plan-price-annual" : undefined}
+                  >
+                    <strong data-testid={plan.tier !== "free" ? `plan-price-${plan.tier}` : undefined}>
+                      {formatBillingPrice(price)}
+                    </strong>
+                    <span>/{interval === "year" ? "year" : "month"}</span>
+                  </div>
+                  {showAnnualSavings && annualPricing.savings ? (
+                    <span data-testid="savings-badge" className="billing-plan-card__savings-pill">Save {annualPricing.savings}</span>
+                  ) : null}
                 </div>
               ) : (
-                <div className="billing-plan-card__price">
-                  <strong>£0.00</strong>
-                  <span>to begin</span>
+                <div className="billing-plan-card__price-row">
+                  <div className="billing-plan-card__price">
+                    <strong>Free</strong>
+                    <span>to begin</span>
+                  </div>
                 </div>
               )}
-              {price?.savingsLabel ? <p className="billing-plan-card__savings">{price.savingsLabel}</p> : null}
+              {showAnnualNotice ? (
+                <p className="billing-plan-card__annual-note">
+                  Annual billing - coming soon. Lock in your monthly rate now.
+                </p>
+              ) : null}
               <ul className="card-list billing-plan-card__perks">
                 {plan.perks.map((perk) => (
                   <li key={perk}>{perk}</li>
                 ))}
               </ul>
+              {plan.tier === "seva" ? (
+                <div className="billing-plan-card__preview">
+                  <p className="section-label">What your family receives</p>
+                  <button
+                    type="button"
+                    className="billing-plan-card__preview-media"
+                    onClick={() => setShowSevaPreview((current) => !current)}
+                    aria-expanded={showSevaPreview}
+                  >
+                    <img src={previewTempleVisual.src} alt={previewTempleVisual.alt} />
+                    <span className="billing-plan-card__preview-play" aria-hidden="true">
+                      Play
+                    </span>
+                  </button>
+                  <p className="billing-plan-card__preview-caption">
+                    Each puja ceremony is recorded in HD and delivered privately to your account.
+                  </p>
+                  {showSevaPreview ? (
+                    <div className="billing-plan-card__preview-note">
+                      <p>
+                        {authenticated
+                          ? "Sample recording available to Seva members. Choose Seva to unlock the private archive."
+                          : "Sample recording available to Seva members. Create your account to access the archive."}
+                      </p>
+                      {!authenticated ? (
+                        <div className="card-actions">
+                          <Button href="/register" tone="secondary">
+                            Create account
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               <p className="muted">{plan.footnote}</p>
               <div className="card-actions">
                 {!authenticated ? (

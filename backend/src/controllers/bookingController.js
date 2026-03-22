@@ -10,13 +10,18 @@ import { filterIntention } from "../utils/contentFilter.js";
 import { recordBookingMade } from "../utils/gamification.js";
 import { getStoredVideoInfo, openVideoDownloadStream } from "../utils/videoStore.js";
 import { resolveBookingGothram, suggestGothramGuided } from "../utils/gothram.js";
-import { sendAdminBookingAlertEmail } from "../utils/email.js";
+import { sendAdminBookingAlertEmail, sendSacredBookingConfirmationEmail } from "../utils/email.js";
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const paymentsDisabled = String(process.env.DISABLE_PAYMENTS || "true").toLowerCase() === "true";
+const ACTIVE_WAITLIST_STATUSES = ["waitlisted", "confirmed", "in_progress"];
 
 function publicBaseUrl(req) {
   return process.env.PUBLIC_API_BASE_URL || `${req.protocol}://${req.get("host")}`;
+}
+
+function webAppBaseUrl() {
+  return (process.env.WEB_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
 }
 
 function selectPricing(pricing, currency = "USD") {
@@ -138,6 +143,77 @@ async function sendAdminBookingAlert(booking, user) {
   }
 }
 
+function serializeActiveBookingLimit(booking) {
+  return {
+    _id: booking._id,
+    bookingReference: booking.bookingReference,
+    status: booking.status,
+    puja: booking.puja
+      ? {
+          _id: booking.puja._id,
+          name: booking.puja.name
+        }
+      : null
+  };
+}
+
+async function getActiveWaitlistBooking(userId) {
+  return PujaBooking.findOne({
+    user: userId,
+    status: { $in: ACTIVE_WAITLIST_STATUSES }
+  })
+    .populate("puja temple")
+    .sort({ createdAt: -1 });
+}
+
+async function enforceFreeWaitlistLimit(user) {
+  if ((user.subscription?.tier || "free") !== "free") {
+    return null;
+  }
+
+  const activeBooking = await getActiveWaitlistBooking(user._id);
+  if (!activeBooking) {
+    return null;
+  }
+
+  throw new ApiError(
+    "CONFLICT",
+    "You have one active waitlist",
+    {
+      reason: "waitlist_limit",
+      activeBooking: serializeActiveBookingLimit(activeBooking)
+    }
+  );
+}
+
+async function sendBookingConfirmationIfBypassed({ booking, user, puja }) {
+  if (!booking || booking.paymentStatus !== "paid") {
+    return;
+  }
+
+  try {
+    await sendSacredBookingConfirmationEmail({
+      to: user.email,
+      name: user.name,
+      ctaUrl: `${webAppBaseUrl()}/bookings/${booking._id}`,
+      booking: {
+        bookingReference: booking.bookingReference,
+        pujaName: booking.puja?.name?.en || puja?.name?.en || "Temple offering",
+        devoteeName: booking.devoteeName,
+        nakshatra: booking.nakshatra,
+        prayerIntention: booking.prayerIntention,
+        presentedAmount: booking.presentedAmount,
+        presentedCurrency: booking.presentedCurrency,
+        estimatedWaitWeeks: booking.puja?.estimatedWaitWeeks || puja?.estimatedWaitWeeks,
+        heroImage: booking.temple?.heroImage || puja?.temple?.heroImage || null,
+        userEmail: user.email
+      }
+    });
+  } catch (error) {
+    console.warn("Sacred booking confirmation email failed:", error.message || error);
+  }
+}
+
 async function createBookingRecord({
   req,
   puja,
@@ -247,6 +323,8 @@ export async function createBooking(req, res, next) {
       throw new ApiError("NOT_FOUND", "Puja not found");
     }
 
+    await enforceFreeWaitlistLimit(req.user);
+
     const presentedCurrency = (req.body.currency || req.user.currency || "USD").toUpperCase();
     const presentedAmount = selectPricing(puja.pricing, presentedCurrency);
     const amountUsd = presentedToUsd(presentedAmount, presentedCurrency);
@@ -275,6 +353,7 @@ export async function createBooking(req, res, next) {
       gothram
     });
     await booking.populate("puja temple");
+    await sendBookingConfirmationIfBypassed({ booking, user: req.user, puja });
     await sendAdminBookingAlert(booking, req.user);
     const bookingCount = await PujaBooking.countDocuments({ user: req.user._id });
     const gamification = await recordBookingMade({
@@ -297,9 +376,6 @@ export async function createBooking(req, res, next) {
 
 export async function createGiftBooking(req, res, next) {
   try {
-    if ((req.user.subscription?.tier || "free") === "free") {
-      return res.status(402).json({ message: "Puja gifting is available on Bhakt and Seva plans." });
-    }
     if (!req.body.giftDetails?.recipientName) {
       throw createValidationError("giftDetails.recipientName is required");
     }
@@ -317,6 +393,8 @@ export async function createGiftBooking(req, res, next) {
     if (!puja) {
       throw new ApiError("NOT_FOUND", "Puja not found");
     }
+
+    await enforceFreeWaitlistLimit(req.user);
 
     const presentedCurrency = (req.body.currency || req.user.currency || "USD").toUpperCase();
     const presentedAmount = selectPricing(puja.pricing, presentedCurrency);
@@ -350,6 +428,7 @@ export async function createGiftBooking(req, res, next) {
     await booking.populate("puja temple");
 
     await linkGiftToUsers(booking, req.user);
+    await sendBookingConfirmationIfBypassed({ booking, user: req.user, puja });
     await sendAdminBookingAlert(booking, req.user);
     const bookingCount = await PujaBooking.countDocuments({ user: req.user._id });
     const gamification = await recordBookingMade({

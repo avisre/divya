@@ -18,4 +18,13 @@ describe("env normalization", () => {
 
     expect(BACKEND_API_BASE_URL).toBe("http://127.0.0.1:3108/api");
   });
+
+  it("does not point backend reads back at the web app when only the site url is set", async () => {
+    delete process.env.BACKEND_API_BASE_URL;
+    delete process.env.NEXT_PUBLIC_BACKEND_ORIGIN;
+    process.env.NEXT_PUBLIC_SITE_URL = "http://127.0.0.1:3104";
+    const { BACKEND_API_BASE_URL } = await import("../../lib/env");
+
+    expect(BACKEND_API_BASE_URL).toBe("http://localhost:5000/api");
+  });
 });

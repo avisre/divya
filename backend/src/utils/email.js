@@ -18,6 +18,54 @@ function createTransporter() {
   });
 }
 
+export async function sendSacredBookingConfirmationEmail({ to, name, booking, ctaUrl }) {
+  const contactUrl = `${(process.env.WEB_APP_URL || "https://praarthana.com").replace(/\/+$/, "")}/contact-us`;
+  const subject = `Your ${booking.pujaName} has been received - Prarthana`;
+  const text = [
+    `Namaste ${name || "Devotee"},`,
+    "",
+    `Your ${booking.pujaName} has been received by Bhadra Bhagavathi Temple, Karunagapally.`,
+    "",
+    "Ceremony details:",
+    `- Offering: ${booking.pujaName}`,
+    `- Family name: ${booking.devoteeName}`,
+    "- Estimated ceremony: within 7 days",
+    "- Video delivery: within 48 hours of ceremony",
+    "",
+    "We will confirm your ceremony date within 24 hours.",
+    "",
+    `Your sacred video will be delivered to your Prarthana account at ${booking.userEmail || to} once the ceremony is complete.`,
+    "",
+    `View your booking: ${ctaUrl}`,
+    "",
+    "The Prarthana team",
+    "",
+    `Questions? Reply to this email or visit ${contactUrl}`
+  ].join("\n");
+
+  const html = template({
+    title: "Your offering has been received.",
+    preheader: `Your ${booking.pujaName} has been received.`,
+    heroUrl: booking.heroImage,
+    ctaLabel: "View your booking",
+    ctaUrl,
+    bodyHtml: `
+      <p>Namaste ${name || "Devotee"},</p>
+      <p>Your <strong>${booking.pujaName}</strong> has been received by Bhadra Bhagavathi Temple, Karunagapally.</p>
+      <p><strong>Ceremony details:</strong><br />
+      Offering: ${booking.pujaName}<br />
+      Family name: ${booking.devoteeName}<br />
+      Estimated ceremony: within 7 days<br />
+      Video delivery: within 48 hours of ceremony</p>
+      <p>We will confirm your ceremony date within 24 hours.</p>
+      <p>Your sacred video will be delivered to your Prarthana account at ${booking.userEmail || to} once the ceremony is complete.</p>
+      <p>Questions? Reply to this email or visit <a href="${contactUrl}">${contactUrl}</a>.</p>
+    `
+  });
+
+  return sendMail({ to, subject, html, text });
+}
+
 export async function sendAdminBookingAlertEmail({ booking, user }) {
   const recipients = (process.env.ADMIN_BOOKING_ALERT_EMAILS || "avinashsreekumar007@gmail.com")
     .split(",")
@@ -152,12 +200,13 @@ function template({ title, preheader, heroUrl, bodyHtml, ctaLabel, ctaUrl }) {
   `;
 }
 
-async function sendMail({ to, subject, html }) {
+async function sendMail({ to, subject, html, text }) {
   return transporter.sendMail({
     from: `${process.env.FROM_NAME || "Prarthana"} <${process.env.FROM_EMAIL || "noreply@prarthana.app"}>`,
     to,
     subject,
-    html
+    html,
+    text
   });
 }
 
@@ -200,7 +249,7 @@ export async function sendWaitlistConfirmationEmail({ to, name, booking, ctaUrl 
       <strong>Nakshatra:</strong> ${booking.nakshatra || "To be shared"}<br />
       <strong>Prayer Intention:</strong> ${booking.prayerIntention}</p>
       <p><strong>Amount Charged:</strong> ${booking.presentedCurrency} ${booking.presentedAmount}</p>
-      <p>Estimated wait: approximately ${booking.estimatedWaitWeeks} weeks. We will notify you by email and app notification when your puja date is confirmed.</p>
+      <p>Estimated wait: approximately ${booking.estimatedWaitWeeks} weeks. We will confirm your ceremony date within 24 hours and notify you by email and app notification once it is locked with the temple.</p>
     `
   });
   return sendMail({ to, subject: `Your Puja Waitlist Booking - ${booking.bookingReference} 🙏`, html });

@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
-import { sendJson } from "../../lib/client-api";
+import { ApiRequestError, sendJson } from "../../lib/client-api";
 import { cn } from "../../lib/cn";
+import { trackEvent } from "../../lib/analytics";
+import { wasDismissedWithinDays } from "../../lib/ux-state";
 import { Button } from "../ui/Button";
 import { StatusStrip } from "../ui/StatusStrip";
+import { useGuidedFlow } from "../ux/GuidedFlowProvider";
 import { useUx } from "../ux/UxProvider";
 import type { Puja, PujaBooking } from "../../lib/types";
 
@@ -18,20 +21,10 @@ type BookingValues = {
   familyRegion: string;
   knownFamilyGothram: string;
   recipientName: string;
-  recipientGothram: string;
-  recipientNakshatra: string;
-  recipientPrayerIntention: string;
-  senderName: string;
+  giftMessage: string;
   recipientEmail: string;
-  giftOccasion: string;
+  preferredDate: string;
 };
-
-const giftOccasions = [
-  { value: "birthday", label: "Birthday", note: "Offer a puja to mark a loved one's birthday." },
-  { value: "anniversary", label: "Anniversary", note: "Bless a marriage or family milestone." },
-  { value: "new_home", label: "New home", note: "Carry temple blessing into a new household." },
-  { value: "general_blessing", label: "General blessing", note: "A quiet gift of protection and care." }
-];
 
 const nakshatras = [
   "Ashwini",
@@ -82,20 +75,35 @@ function FieldHelp({
   );
 }
 
+function buildRequestedDateRange(preferredDate?: string) {
+  if (!preferredDate) return undefined;
+
+  return {
+    start: new Date(`${preferredDate}T00:00:00.000Z`).toISOString(),
+    end: new Date(`${preferredDate}T23:59:59.999Z`).toISOString()
+  };
+}
+
 export function BookingPanel({
   puja,
-  isAuthenticated
+  isAuthenticated,
+  currentTier
 }: {
   puja: Puja;
   isAuthenticated: boolean;
+  currentTier: "free" | "bhakt" | "seva";
 }) {
   const [mode, setMode] = useState<"self" | "gift">("self");
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
-  const [submittedBooking, setSubmittedBooking] = useState<PujaBooking | null>(null);
+  const [waitlistLimitBooking, setWaitlistLimitBooking] = useState<Pick<PujaBooking, "_id" | "bookingReference" | "status" | "puja"> | null>(null);
   const [showSubmitAnimation, setShowSubmitAnimation] = useState(false);
   const [openHelper, setOpenHelper] = useState<null | "gothram" | "nakshatra">(null);
-  const { markGiftCompleted, markGiftStarted } = useUx();
+  const waitlistPaywallTrackedRef = useRef(false);
+  const { dismissPrompt, markGiftCompleted, markGiftStarted, state } = useUx();
+  const { familyName, suppressPrompts } = useGuidedFlow();
+  const today = new Date().toISOString().slice(0, 10);
+  const waitlistPromptDismissed = wasDismissedWithinDays(state.waitlistPaywallDismissedAt, 7);
   const { register, handleSubmit, getValues, setValue, watch } = useForm<BookingValues>({
     defaultValues: {
       devoteeName: "",
@@ -106,17 +114,28 @@ export function BookingPanel({
       familyRegion: "",
       knownFamilyGothram: "",
       recipientName: "",
-      recipientGothram: "",
-      recipientNakshatra: "",
-      recipientPrayerIntention: "",
-      senderName: "",
+      giftMessage: "",
       recipientEmail: "",
-      giftOccasion: "general_blessing"
+      preferredDate: ""
     }
   });
 
+  useEffect(() => {
+    if (familyName && !getValues("devoteeName")) {
+      setValue("devoteeName", familyName);
+    }
+  }, [familyName, getValues, setValue]);
+
   const quickReasons = useMemo(() => puja.bestFor?.slice(0, 3) || [], [puja.bestFor]);
-  const selectedOccasion = watch("giftOccasion");
+  const preferredDate = watch("preferredDate");
+
+  useEffect(() => {
+    if (!waitlistLimitBooking || waitlistPromptDismissed || waitlistPaywallTrackedRef.current || suppressPrompts) {
+      return;
+    }
+    waitlistPaywallTrackedRef.current = true;
+    trackEvent("Paywall Seen", { type: "puja_limit", puja_name: puja.name.en });
+  }, [puja.name.en, suppressPrompts, waitlistLimitBooking, waitlistPromptDismissed]);
 
   if (!isAuthenticated) {
     return (
@@ -133,93 +152,23 @@ export function BookingPanel({
     );
   }
 
-  if (submittedBooking) {
-    const whatsappMessage =
-      mode === "gift"
-        ? `I have offered a ${puja.name.en} puja at Bhadra Bhagavathi Temple in your name. The Tantri will perform it soon. You will receive a recording when it is complete. With love, ${getValues("senderName") || getValues("devoteeName") || "your family"}.`
-        : "";
-
-    return (
-      <div className="surface-card booking-confirmation">
-        <p className="eyebrow">{mode === "gift" ? "Gift confirmed" : "Booking confirmed"}</p>
-        <h3>{mode === "gift" ? "Your gift is with the temple." : "Your request is with the temple."}</h3>
-        {mode === "gift" ? (
-          <p>
-            You have offered {puja.name.en} for {getValues("recipientName") || submittedBooking.devoteeName}.
-            The Tantri will perform the puja in their name. A recording will be delivered to your
-            bookings when it is complete.
-          </p>
-        ) : (
-          <div className="timeline-steps">
-            <div className="timeline-step">
-              <strong>Step 1 - Today</strong>
-              <p>
-                Your booking is in the queue. The temple team reviews the waitlist weekly and
-                assigns puja dates based on availability and auspicious timing.
-              </p>
-            </div>
-            <div className="timeline-step">
-              <strong>Step 2 - When confirmed</strong>
-              <p>
-                You will receive an email with the confirmed puja date and time. The Tantri will
-                perform the ritual in your name.
-              </p>
-            </div>
-            <div className="timeline-step">
-              <strong>Step 3 - Within 48 hours</strong>
-              <p>
-                Your HD recording appears in bookings, private to your account and yours to keep.
-              </p>
-            </div>
-          </div>
-        )}
-        <div className="card-actions">
-          <Button href="/bookings">View my bookings {"->"}</Button>
-          {mode === "gift" ? (
-            <Button tone="secondary" href={`https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`}>
-              Send them a message
-            </Button>
-          ) : (
-            <Button tone="secondary" href="/pujas">
-              Book another puja for a family member {"->"}
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="surface-card booking-panel">
-      <p className="eyebrow">Who is this puja for?</p>
-      <div className="booking-mode-grid">
-        <button
-          type="button"
-          className={`selection-card booking-mode-card ${mode === "self" ? "selection-card--active" : ""}`}
-          onClick={() => setMode("self")}
-        >
-          <span className="selection-card__eyebrow">For me</span>
-          <strong>My name and gothram will be submitted to the temple.</strong>
-        </button>
-        <button
-          type="button"
-          className={`selection-card booking-mode-card ${mode === "gift" ? "selection-card--active" : ""}`}
-          onClick={() => {
-            setMode("gift");
-            markGiftStarted();
-          }}
-        >
-          <span className="selection-card__eyebrow">Gift to someone</span>
-          <strong>{"I am offering this puja in another person\u2019s name."}</strong>
-        </button>
-      </div>
+      <p className="eyebrow">Join the sacred waitlist</p>
+      <p className="muted">
+        {mode === "gift"
+          ? "Honor someone by offering this puja in their name and sending them the sacred recording after the ceremony."
+          : "Submit your family name, prayer intention, and optional preferred date. Subject to temple schedule confirmation."}
+      </p>
 
       <form
         className="form-grid"
-        onSubmit={handleSubmit(async (values) => {
-          setPending(true);
-          setStatus("");
-          try {
+      onSubmit={handleSubmit(async (values) => {
+        setPending(true);
+        setStatus("");
+        setWaitlistLimitBooking(null);
+        waitlistPaywallTrackedRef.current = false;
+        try {
             const playConfirmation = async (message: string) => {
               setStatus(message);
               setShowSubmitAnimation(true);
@@ -227,12 +176,14 @@ export function BookingPanel({
               setShowSubmitAnimation(false);
             };
 
+            const requestedDateRange = buildRequestedDateRange(values.preferredDate);
+
             if (mode === "gift") {
               if (!values.recipientName.trim()) {
-                throw new Error("Recipient name is required for a gifted puja.");
+                throw new Error("Recipient name is required for a gift puja.");
               }
               if (!values.recipientEmail.trim()) {
-                throw new Error("Recipient email is required so the temple recording can be delivered.");
+                throw new Error("An email is required to send the gift confirmation.");
               }
 
               const payload = await sendJson<{ booking: PujaBooking }>("/api/backend/bookings/gift", {
@@ -240,23 +191,22 @@ export function BookingPanel({
                 body: JSON.stringify({
                   pujaId: puja._id,
                   devoteeName: values.recipientName,
-                  gothram: values.recipientGothram,
-                  nakshatra: values.recipientNakshatra,
-                  prayerIntention: values.recipientPrayerIntention,
+                  prayerIntention:
+                    values.giftMessage.trim() || `Temple offering gifted for ${values.recipientName}.`,
+                  requestedDateRange,
                   giftDetails: {
                     isGift: true,
                     recipientName: values.recipientName,
                     recipientEmail: values.recipientEmail,
-                    giftOccasion: values.giftOccasion,
-                    personalMessage: values.senderName
-                      ? `Offered with love from ${values.senderName}.`
-                      : undefined
+                    personalMessage: values.giftMessage.trim() || undefined,
+                    giftOccasion: "general_blessing"
                   }
                 })
               });
               await playConfirmation("Gift booking request submitted.");
-              setSubmittedBooking(payload.booking);
+              trackEvent("Puja Booked", { puja_name: puja.name.en, user_tier: currentTier });
               markGiftCompleted();
+              window.location.assign(`/bookings/${payload.booking._id}?confirmed=1`);
             } else {
               const payload = await sendJson<{ booking: PujaBooking }>("/api/backend/bookings", {
                 method: "POST",
@@ -268,13 +218,25 @@ export function BookingPanel({
                   devoteeName: values.devoteeName,
                   gothram: values.gothram,
                   nakshatra: values.nakshatra,
-                  prayerIntention: values.prayerIntention
+                  prayerIntention: values.prayerIntention,
+                  requestedDateRange
                 })
               });
               await playConfirmation("Puja request submitted.");
-              setSubmittedBooking(payload.booking);
+              trackEvent("Puja Booked", { puja_name: puja.name.en, user_tier: currentTier });
+              window.location.assign(`/bookings/${payload.booking._id}?confirmed=1`);
             }
           } catch (error) {
+            if (error instanceof ApiRequestError) {
+              const details = error.payload?.details as
+                | { reason?: string; activeBooking?: Pick<PujaBooking, "_id" | "bookingReference" | "status" | "puja"> }
+                | undefined;
+              if (details?.reason === "waitlist_limit" && details.activeBooking) {
+                setWaitlistLimitBooking(details.activeBooking);
+                setStatus("");
+                return;
+              }
+            }
             setStatus(error instanceof Error ? error.message : "Unable to submit your request.");
           } finally {
             setPending(false);
@@ -285,7 +247,7 @@ export function BookingPanel({
           <>
             <label className="field">
               <span>Devotee name</span>
-              <input {...register("devoteeName")} />
+              <input data-testid="booking-family-name" {...register("devoteeName")} />
             </label>
             <label className="field">
               <span>Family surname or community</span>
@@ -302,8 +264,13 @@ export function BookingPanel({
             <label className="field">
               <span className="field__label">
                 <span className="field__label-text">Gothram</span>
-                <FieldHelp open={openHelper === "gothram"} onToggle={() => setOpenHelper((current) => (current === "gothram" ? null : "gothram"))}>
-                  Your family lineage name, for example Kashyap, Bharadwaj, or Vasishtha. Ask a parent or grandparent if you are unsure. If you still do not know, write Unknown and the Tantri will record what you provide.
+                <FieldHelp
+                  open={openHelper === "gothram"}
+                  onToggle={() => setOpenHelper((current) => (current === "gothram" ? null : "gothram"))}
+                >
+                  Your family lineage name, for example Kashyap, Bharadwaj, or Vasishtha. Ask a parent
+                  or grandparent if you are unsure. If you still do not know, write Unknown and the
+                  Tantri will record what you provide.
                 </FieldHelp>
               </span>
               <input {...register("gothram")} />
@@ -340,8 +307,12 @@ export function BookingPanel({
             <label className="field">
               <span className="field__label">
                 <span className="field__label-text">Nakshatra</span>
-                <FieldHelp open={openHelper === "nakshatra"} onToggle={() => setOpenHelper((current) => (current === "nakshatra" ? null : "nakshatra"))}>
-                  Your birth star in the Hindu lunar calendar. If you do not know yours, use any free nakshatra calculator with your birth date, time, and place. Ashwini is the first; Revati is the twenty-seventh.
+                <FieldHelp
+                  open={openHelper === "nakshatra"}
+                  onToggle={() => setOpenHelper((current) => (current === "nakshatra" ? null : "nakshatra"))}
+                >
+                  Your birth star in the Hindu lunar calendar. If you do not know yours, use any free
+                  nakshatra calculator with your birth date, time, and place.
                 </FieldHelp>
               </span>
               <select {...register("nakshatra")}>
@@ -357,66 +328,38 @@ export function BookingPanel({
               <span>Prayer intention</span>
               <textarea
                 rows={6}
-                placeholder="What are you hoping for your family? Peace and good health for my parents / My daughter's exams / Safe move to a new city / Gratitude for this year (any language, any length - the Tantri reads this)"
+                placeholder="What are you hoping for your family? Peace and good health for my parents / My daughter's exams / Safe move to a new city / Gratitude for this year"
                 {...register("prayerIntention")}
               />
             </label>
           </>
         ) : (
           <>
-            <div className="field field--full">
-              <span>Gift occasion</span>
-              <div className="booking-mode-grid">
-                {giftOccasions.map((occasion) => (
-                  <button
-                    key={occasion.value}
-                    type="button"
-                    className={`selection-card ${selectedOccasion === occasion.value ? "selection-card--active" : ""}`}
-                    onClick={() => setValue("giftOccasion", occasion.value)}
-                  >
-                    <span className="selection-card__eyebrow">{occasion.label}</span>
-                    <strong>{occasion.note}</strong>
-                  </button>
-                ))}
-              </div>
-            </div>
             <label className="field">
-              <span>Recipient name</span>
+              <span>Recipient&apos;s name</span>
               <input {...register("recipientName")} />
             </label>
             <label className="field">
-              <span>Recipient gothram</span>
-              <input {...register("recipientGothram")} />
-            </label>
-            <label className="field">
-              <span>Recipient nakshatra</span>
-              <select {...register("recipientNakshatra")}>
-                <option value="">Select a nakshatra</option>
-                {nakshatras.map((nakshatra) => (
-                  <option key={nakshatra} value={nakshatra}>
-                    {nakshatra}
-                  </option>
-                ))}
-              </select>
+              <span>Send gift confirmation to</span>
+              <input type="email" {...register("recipientEmail")} />
             </label>
             <label className="field field--full">
-              <span>Recipient prayer intention</span>
+              <span>Your message</span>
               <textarea
                 rows={5}
-                placeholder="What are you hoping for their family? Peace and good health / Exam blessing / Safe travel / Gratitude for a new beginning"
-                {...register("recipientPrayerIntention")}
+                maxLength={200}
+                placeholder="Optional note to include with the gift confirmation."
+                {...register("giftMessage")}
               />
-            </label>
-            <label className="field">
-              <span>Your name</span>
-              <input {...register("senderName")} />
-            </label>
-            <label className="field">
-              <span>Recipient email</span>
-              <input type="email" {...register("recipientEmail")} />
             </label>
           </>
         )}
+
+        <label className="field field--full">
+          <span>Preferred date (optional)</span>
+          <input type="date" min={today} {...register("preferredDate")} />
+          <small className="muted">Subject to temple schedule confirmation.</small>
+        </label>
 
         {quickReasons.length ? (
           <div className="pill-row pill-row--full">
@@ -431,15 +374,81 @@ export function BookingPanel({
         {showSubmitAnimation ? (
           <div className={cn("booking-panel__success-bloom", "booking-panel__success-bloom--active")} aria-live="polite">
             <span className="booking-panel__success-mark" aria-hidden="true">
-              ॐ
+              {"\u0950"}
             </span>
             <span>Temple request received.</span>
           </div>
         ) : null}
         {status ? <StatusStrip tone="success">{status}</StatusStrip> : null}
-        <Button type="submit" disabled={pending}>
-          {pending ? "Submitting..." : mode === "gift" ? "Offer this puja as a gift" : "Join waitlist"}
-        </Button>
+        {waitlistLimitBooking && !suppressPrompts ? (
+          <div
+            data-testid="waitlist-limit-prompt"
+            className={cn(
+              "field field--full surface-card waitlist-limit-card",
+              waitlistPromptDismissed && "waitlist-limit-card--compact"
+            )}
+          >
+            {!waitlistPromptDismissed ? (
+              <button
+                type="button"
+                className="discovery-banner__dismiss"
+                onClick={() => dismissPrompt("waitlistPaywallDismissedAt")}
+                aria-label="Dismiss waitlist upgrade prompt"
+              >
+                x
+              </button>
+            ) : null}
+            <h3>You have one active waitlist</h3>
+            {!waitlistPromptDismissed ? (
+              <p>
+                Free accounts can hold one puja waitlist at a time. Bhakt removes this limit and gives
+                priority scheduling.
+              </p>
+            ) : (
+              <p>Bhakt removes the one-waitlist limit on free accounts.</p>
+            )}
+            <div className="card-actions">
+              <Button data-testid="manage-waitlist-link" href={`/bookings/${waitlistLimitBooking._id}`}>Manage your current waitlist</Button>
+              <Button
+                tone="secondary"
+                href="/plans?highlight=bhakt"
+                onClick={() =>
+                  trackEvent("Upgrade Clicked", {
+                    from_tier: currentTier,
+                    to_tier: "bhakt",
+                    trigger: "paywall_puja"
+                  })
+                }
+              >
+                Upgrade to Bhakt
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="field field--full">
+            <Button data-testid="join-waitlist-btn" data-guided-target="join-waitlist" type="submit" disabled={pending} block>
+              {pending ? "Submitting..." : mode === "gift" ? "Book gift puja" : "Join sacred waitlist"}
+            </Button>
+          </div>
+        )}
+        <div className="field field--full">
+          {mode === "gift" ? (
+            <button type="button" className="text-button" onClick={() => setMode("self")}>
+              Back to booking for myself
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                markGiftStarted();
+                setMode("gift");
+              }}
+            >
+              Book this as a gift {"->"}
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

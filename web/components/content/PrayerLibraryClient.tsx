@@ -34,10 +34,12 @@ function matchesContext(prayer: Prayer, context: string | null) {
 
 export function PrayerLibraryClient({
   prayers,
-  deityOptions
+  deityOptions,
+  isAuthenticated
 }: {
   prayers: Prayer[];
   deityOptions: string[];
+  isAuthenticated: boolean;
 }) {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("q") || "");
@@ -153,7 +155,7 @@ export function PrayerLibraryClient({
 
       <div className="catalog-grid catalog-grid--two prayer-library-grid">
         {filteredPrayers.map((prayer) => (
-          <PrayerCard key={prayer._id} prayer={prayer} />
+          <PrayerCard key={prayer._id} prayer={prayer} isAuthenticated={isAuthenticated} />
         ))}
       </div>
     </div>

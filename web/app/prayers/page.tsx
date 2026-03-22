@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/Button";
 import { getDeities, getPrayers } from "../../lib/data";
 import { OM_SYMBOL } from "../../lib/presentation";
 import { buildBreadcrumbSchema, buildPublicMetadata } from "../../lib/seo";
+import { getOptionalSession } from "../../lib/session";
 
 export const metadata: Metadata = buildPublicMetadata({
   title: "Prayer library",
@@ -17,7 +18,8 @@ export const metadata: Metadata = buildPublicMetadata({
 });
 
 export default async function PrayersPage() {
-  const [prayers, deities] = await Promise.all([
+  const [session, prayers, deities] = await Promise.all([
+    getOptionalSession(),
     getPrayers("?limit=108").catch(() => []),
     getDeities().catch(() => [])
   ]);
@@ -54,6 +56,7 @@ export default async function PrayersPage() {
         <PrayerLibraryClient
           prayers={prayers}
           deityOptions={deities.map((deity) => deity.name.en)}
+          isAuthenticated={Boolean(session)}
         />
       </Section>
       <Section

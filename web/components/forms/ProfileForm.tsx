@@ -5,9 +5,11 @@ import { useForm } from "react-hook-form";
 import { sendJson } from "../../lib/client-api";
 import { Button } from "../ui/Button";
 import { StatusStrip } from "../ui/StatusStrip";
+import { useGuidedFlow } from "../ux/GuidedFlowProvider";
 import type { UserSession } from "../../lib/types";
 
 type ProfileValues = {
+  familyName: string;
   preferredLanguage: string;
   country: string;
   timezone: string;
@@ -23,8 +25,10 @@ export function ProfileForm({ user }: { user: UserSession }) {
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState("default");
+  const { syncProfileState } = useGuidedFlow();
   const { register, handleSubmit } = useForm<ProfileValues>({
     defaultValues: {
+      familyName: user.familyName || "",
       preferredLanguage: user.preferredLanguage || "english",
       country: user.country || "US",
       timezone: user.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -53,6 +57,8 @@ export function ProfileForm({ user }: { user: UserSession }) {
           await sendJson("/api/backend/users/profile", {
             method: "PUT",
             body: JSON.stringify({
+              familyName: values.familyName,
+              familyNameSkipped: false,
               preferredLanguage: values.preferredLanguage,
               country: values.country,
               timezone: values.timezone,
@@ -67,6 +73,10 @@ export function ProfileForm({ user }: { user: UserSession }) {
               }
             })
           });
+          syncProfileState({
+            familyName: values.familyName,
+            familyNameSkipped: false
+          });
           setStatus("Profile settings saved.");
         } catch (error) {
           setStatus(error instanceof Error ? error.message : "Unable to save profile.");
@@ -75,6 +85,10 @@ export function ProfileForm({ user }: { user: UserSession }) {
         }
       })}
     >
+      <label className="field">
+        <span>Family name</span>
+        <input data-guided-target="profile-family-name" {...register("familyName")} />
+      </label>
       <label className="field">
         <span>Preferred language</span>
         <input {...register("preferredLanguage")} />

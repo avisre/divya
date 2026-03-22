@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { sendJson } from "../../lib/client-api";
-import { markPendingOnboarding } from "../../lib/ux-state";
+import { trackEvent } from "../../lib/analytics";
 import { GoogleAuthButton } from "./GoogleAuthButton";
 import { Button } from "../ui/Button";
 import { StatusStrip } from "../ui/StatusStrip";
@@ -22,6 +22,7 @@ export function RegisterForm() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const next = useMemo(() => searchParams.get("next") || "/home", [searchParams]);
+  const signupSource = useMemo(() => searchParams.get("source") || "hero_cta", [searchParams]);
   const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { register, handleSubmit, watch } = useForm<RegisterValues>({
     defaultValues: {
@@ -46,8 +47,8 @@ export function RegisterForm() {
             method: "POST",
             body: JSON.stringify(values)
           });
-          markPendingOnboarding();
-          window.location.assign(`/onboarding?next=${encodeURIComponent(next)}`);
+          trackEvent("Signup", { source: signupSource });
+          window.location.assign(`/welcome?next=${encodeURIComponent(next)}`);
         } catch (nextError) {
           setError(nextError instanceof Error ? nextError.message : "Unable to create account.");
         } finally {
@@ -55,7 +56,7 @@ export function RegisterForm() {
         }
       })}
     >
-      <GoogleAuthButton returnTo={next} />
+      <GoogleAuthButton returnTo={`/welcome?next=${encodeURIComponent(next)}`} />
       <div className="oauth-divider">or create your account with email</div>
       <div className="trust-strip trust-strip--auth">
         <span>Free to start</span>

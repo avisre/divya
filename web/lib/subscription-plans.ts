@@ -28,6 +28,7 @@ const planDefinitions: BillingPlan[] = [
       "Unlimited waitlists with priority scheduling"
     ],
     prices: {
+      // TODO: replace with dynamic price from config.
       month: {
         amountCents: 499,
         currency: "gbp",
@@ -63,6 +64,7 @@ const planDefinitions: BillingPlan[] = [
       "Early access to new puja types"
     ],
     prices: {
+      // TODO: replace with dynamic price from config.
       month: {
         amountCents: 1299,
         currency: "gbp",
@@ -86,6 +88,10 @@ const planDefinitions: BillingPlan[] = [
   }
 ];
 
+export function getBillingPlan(tier: BillingPlan["tier"]) {
+  return planDefinitions.find((plan) => plan.tier === tier) || null;
+}
+
 export function buildStaticBillingCatalog(): BillingCatalog {
   return {
     enabled: false,
@@ -105,6 +111,12 @@ export function formatBillingPrice(price: BillingPriceOption) {
 
 export function getBillingPrice(plan: BillingPlan, interval: BillingInterval) {
   return plan.prices?.[interval] || null;
+}
+
+export function getBillingPriceForTier(tier: BillingPlan["tier"], interval: BillingInterval) {
+  const plan = getBillingPlan(tier);
+  if (!plan) return null;
+  return getBillingPrice(plan, interval);
 }
 
 export function getSubscriptionLabel(subscription?: Subscription | null) {

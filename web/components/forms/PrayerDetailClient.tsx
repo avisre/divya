@@ -5,6 +5,8 @@ import { sendJson } from "../../lib/client-api";
 import { cn } from "../../lib/cn";
 import { resolvePlayableAudioUrl } from "../../lib/media";
 import { getPrayerDifficultyMeta } from "../../lib/presentation";
+import { trackEvent } from "../../lib/analytics";
+import { formatBillingPrice, getBillingPriceForTier } from "../../lib/subscription-plans";
 import type {
   GamificationResult,
   Prayer,
@@ -12,12 +14,15 @@ import type {
   PrayerGlossaryEntry,
   PrayerVerse
 } from "../../lib/types";
+import { wasDismissedWithinDays } from "../../lib/ux-state";
 import { Button } from "../ui/Button";
 import { StatusStrip } from "../ui/StatusStrip";
 import { PrayerAudioPlayer } from "./PrayerAudioPlayer";
+import { useGuidedFlow } from "../ux/GuidedFlowProvider";
 import { useUx } from "../ux/UxProvider";
 
 type TabKey = "script" | "follow" | "meaning" | "about";
+const COMPLETION_NUDGE_SESSION_KEY = "prarthana-prayer-completion-nudge-dismissed";
 
 function getStoredPrayerTab(slug: string): TabKey {
   if (typeof window === "undefined") {
@@ -88,18 +93,34 @@ function splitParagraphs(value: string | null | undefined) {
     .filter(Boolean);
 }
 
+function rememberCompletionNudgeDismissal() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(COMPLETION_NUDGE_SESSION_KEY, "1");
+}
+
+function completionNudgeDismissedForSession() {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(COMPLETION_NUDGE_SESSION_KEY) === "1";
+}
+
 export function PrayerDetailClient({
   prayer,
   audio,
-  isAuthenticated
+  isAuthenticated,
+  currentTier
 }: {
   prayer: Prayer;
   audio?: PrayerAudioMetadata | null;
   isAuthenticated: boolean;
+  currentTier: "free" | "bhakt" | "seva";
 }) {
   const [tab, setTab] = useState<TabKey>(() => getStoredPrayerTab(prayer.slug));
   const [status, setStatus] = useState("");
   const [showFirstPrayerPrompt, setShowFirstPrayerPrompt] = useState(false);
+  const [showCompletionNudge, setShowCompletionNudge] = useState(false);
+  const [completionNudgeDismissed, setCompletionNudgeDismissed] = useState(() =>
+    completionNudgeDismissedForSession()
+  );
   const [activeGlossary, setActiveGlossary] = useState<PrayerGlossaryEntry | null>(null);
   const [completionSent, setCompletionSent] = useState(false);
   const [scriptureReaderSent, setScriptureReaderSent] = useState(false);
@@ -107,16 +128,34 @@ export function PrayerDetailClient({
   const [activeVerseNumber, setActiveVerseNumber] = useState<number | null>(null);
   const readingRef = useRef<HTMLDivElement>(null);
   const openedRef = useRef(false);
+  const uxOpenedSlugRef = useRef<string | null>(null);
+  const prayerPaywallTrackedRef = useRef(false);
   const audioSrc = resolvePlayableAudioUrl(
-    audio?.streamUrl,
-    audio?.url,
+    prayer.audioUrl,
     audio?.directUrl,
-    prayer.audioUrl
+    audio?.streamUrl,
+    audio?.url
   );
-  const { announceGamification, markPrayer60s, markPrayerOpened, state } = useUx();
+  const { announceGamification, dismissPrompt, markPrayer60s, markPrayerOpened, state } = useUx();
+  const { suppressPrompts } = useGuidedFlow();
   const difficulty = getPrayerDifficultyMeta(prayer.difficulty);
   const verses = useMemo(() => buildVerses(prayer), [prayer]);
   const scriptLanguage = prayer.content.malayalam ? "ml" : "sa";
+  const requiredTier =
+    prayer.requiredTier && prayer.requiredTier !== "free" ? prayer.requiredTier : "bhakt";
+  const requiredTierName = requiredTier === "seva" ? "Seva" : "Bhakt";
+  const requiredTierPrayerCount = requiredTier === "seva" ? 108 : 54;
+  const requiredTierMonthlyPrice = getBillingPriceForTier(requiredTier, "month");
+  const requiredTierPriceLabel = requiredTierMonthlyPrice
+    ? formatBillingPrice(requiredTierMonthlyPrice)
+    : requiredTier === "seva"
+      ? "£12.99"
+      : "£4.99";
+  const prayersRemaining = Math.max(0, 10 - state.prayerOpenCount);
+  const prayerLocked = Boolean(prayer.requiredTier && prayer.requiredTier !== "free" && prayer.entitled === false);
+  const showPrayerContent = !prayerLocked || suppressPrompts;
+  const prayerPaywallDismissed = wasDismissedWithinDays(state.prayerPaywallDismissedAt, 7);
+  const completionPromptDismissed = wasDismissedWithinDays(state.prayerCompletionPromptDismissedAt, 7);
   const glossaryMap = useMemo(
     () => new Map((prayer.wordGlossary || []).map((entry) => [normalizeWord(entry.word), entry])),
     [prayer.wordGlossary]
@@ -129,19 +168,27 @@ export function PrayerDetailClient({
   }, []);
 
   useEffect(() => {
+    if (prayerLocked) return;
+    if (uxOpenedSlugRef.current === prayer.slug) return;
+    uxOpenedSlugRef.current = prayer.slug;
     markPrayerOpened(prayer.slug);
-  }, [markPrayerOpened, prayer.slug]);
+    trackEvent("Prayer Opened", {
+      prayer_name: prayer.title.en,
+      tier: currentTier
+    });
+  }, [currentTier, markPrayerOpened, prayer.slug, prayer.title.en, prayerLocked]);
 
   useEffect(() => {
+    if (prayerLocked) return;
     const timer = window.setTimeout(() => {
       markPrayer60s(prayer.slug);
       setShowFirstPrayerPrompt(true);
     }, 60000);
     return () => window.clearTimeout(timer);
-  }, [markPrayer60s, prayer.slug]);
+  }, [markPrayer60s, prayer.slug, prayerLocked]);
 
   useEffect(() => {
-    if (!isAuthenticated || openedRef.current) return;
+    if (!isAuthenticated || prayerLocked || openedRef.current) return;
     openedRef.current = true;
     void sendJson<GamificationResult>(`/api/backend/prayers/${prayer._id}/open`, {
       method: "POST",
@@ -149,7 +196,19 @@ export function PrayerDetailClient({
     })
       .then((result) => announceGamification(result))
       .catch(() => undefined);
-  }, [announceGamification, isAuthenticated, prayer._id]);
+  }, [announceGamification, isAuthenticated, prayer._id, prayerLocked]);
+
+  useEffect(() => {
+    if (!prayerLocked || prayerPaywallDismissed || prayerPaywallTrackedRef.current || suppressPrompts) {
+      return;
+    }
+    prayerPaywallTrackedRef.current = true;
+    trackEvent("Paywall Seen", {
+      type: "prayer",
+      required_tier: requiredTier,
+      prayer_slug: prayer.slug
+    });
+  }, [prayer.slug, prayerLocked, prayerPaywallDismissed, requiredTier, suppressPrompts]);
 
   function persistTab(nextTab: TabKey) {
     setTab(nextTab);
@@ -173,6 +232,14 @@ export function PrayerDetailClient({
         announceGamification(result);
         if (result.pointsAwarded) {
           setStatus(`Prayer completed. +${result.pointsAwarded} lotus points.`);
+        }
+        if (
+          currentTier === "free" &&
+          state.prayerOpenCount >= 7 &&
+          !completionPromptDismissed &&
+          !completionNudgeDismissedForSession()
+        ) {
+          setShowCompletionNudge(true);
         }
       })
       .catch((error) => {
@@ -210,7 +277,7 @@ export function PrayerDetailClient({
       .sort((left, right) => Number(left.audioStartSec || 0) - Number(right.audioStartSec || 0));
 
     if (!sorted.length) {
-      setActiveVerseNumber(null);
+      setActiveVerseNumber((current) => (current === null ? current : null));
       return;
     }
 
@@ -229,7 +296,17 @@ export function PrayerDetailClient({
       }
     }
 
-    setActiveVerseNumber(nextActive);
+    setActiveVerseNumber((current) => (current === nextActive ? current : nextActive));
+  }
+
+  function handlePlaybackChange(isPlaying: boolean) {
+    if (!isPlaying) {
+      return;
+    }
+
+    if (tab !== "follow") {
+      persistTab("follow");
+    }
   }
 
   function handleReadingScroll() {
@@ -250,6 +327,87 @@ export function PrayerDetailClient({
 
   return (
     <div className="prayer-detail-stack">
+      {prayerLocked && !suppressPrompts ? (
+        <div
+          data-testid="prayer-paywall"
+          className={cn(
+            "surface-card prayer-paywall-card",
+            prayerPaywallDismissed && "prayer-paywall-card--compact"
+          )}
+        >
+          {!prayerPaywallDismissed ? (
+            <button
+              type="button"
+              className="discovery-banner__dismiss"
+              onClick={() => {
+                dismissPrompt("prayerPaywallDismissedAt");
+              }}
+              aria-label="Dismiss upgrade prompt"
+            >
+              x
+            </button>
+          ) : null}
+          <div className="prayer-paywall-card__icon" aria-hidden="true">
+            OM
+          </div>
+          <p data-testid="prayer-title" className="muted-label">
+            {prayer.title.en}
+          </p>
+          {!prayerPaywallDismissed ? (
+            <>
+              <h3>This prayer is part of the {requiredTierName} library</h3>
+              <p>
+                Your free account includes 10 complete prayers. {requiredTierName} unlocks{" "}
+                {requiredTierPrayerCount} guided prayers with bundled audio for{" "}
+                {requiredTierPriceLabel}/month.
+              </p>
+              <div className="card-actions">
+                <Button
+                  data-testid="prayer-paywall-cta"
+                  href={`/plans?highlight=${requiredTier}`}
+                  onClick={() =>
+                    trackEvent("Upgrade Clicked", {
+                      from_tier: currentTier,
+                      to_tier: requiredTier,
+                      trigger: "paywall_prayer"
+                    })
+                  }
+                >
+                  Unlock with {requiredTierName} - {requiredTierPriceLabel}/mo
+                </Button>
+                <Button tone="ghost" href="/plans">
+                  See what&apos;s included in {requiredTierName}
+                </Button>
+              </div>
+              <p className="prayer-paywall-card__footnote">
+                Already subscribed? Sign in to a different account or check your plan at /plans.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3>{requiredTierName} is required to open this prayer.</h3>
+              <div className="card-actions">
+                <Button
+                  tone="ghost"
+                  href={`/plans?highlight=${requiredTier}`}
+                  onClick={() =>
+                    trackEvent("Upgrade Clicked", {
+                      from_tier: currentTier,
+                      to_tier: requiredTier,
+                      trigger: "paywall_prayer_compact"
+                    })
+                  }
+                >
+                  View {requiredTierName} plans
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      {showPrayerContent ? (
+        <>
       <div className="surface-card shared-prayer-invite">
         <div>
           <p className="eyebrow">Pray together</p>
@@ -302,6 +460,7 @@ export function PrayerDetailClient({
               title={prayer.title.en}
               onProgress={({ currentTime }) => updateActiveVerse(currentTime)}
               onNearComplete={() => maybeComplete("audio")}
+              onPlaybackChange={handlePlaybackChange}
             />
           ) : (
             <p className="muted">Audio is coming soon for this prayer.</p>
@@ -335,13 +494,14 @@ export function PrayerDetailClient({
 
         {tab === "follow" ? (
           <div className="reading-panel reading-panel--follow">
-            <h3>Say it out loud</h3>
+            <h3>Say it out loud, then sing with the meaning</h3>
             <p className="muted">
-              Roman letters so you can follow the pronunciation without knowing any Indian script.
+              Roman letters stay on top for pronunciation. The English line sits beneath each verse
+              so you can follow what you are singing in real time.
             </p>
             <p className="muted">
-              Tip: read each word slowly once, then try saying it with the audio. Your pronunciation
-              will improve naturally within 5 sessions.
+              Press play and follow the active verse. Read one line, hear one line, then sing the
+              next pass with the English meaning in view.
             </p>
           </div>
         ) : null}
@@ -405,25 +565,32 @@ export function PrayerDetailClient({
           ) : (
             verses.map((entry) => {
               const line = tab === "script" ? entry.script : tab === "follow" ? entry.iast : entry.meaning;
+              const followLine = entry.iast || entry.script || entry.meaning || "";
+              const followMeaning = entry.meaning || prayer.content.english || "";
               const glossaryMatches = verseGlossaryMatches(entry, prayer.wordGlossary || []);
 
               return (
                 <article
                   key={`${entry.number}-${tab}`}
-                  className={cn("verse-block", activeVerseNumber === entry.number && "verse-block--active")}
+                  className={cn(
+                    "verse-block",
+                    tab === "follow" && "verse-block--follow",
+                    activeVerseNumber === entry.number && "verse-block--active"
+                  )}
                 >
                   <div className="verse-block__meta">
                     Verse {entry.number}
                     {entry.type ? ` · ${entry.type}` : ""}
                   </div>
                   <div className="verse-block__content">
-                    {(line || "")
-                      .split("\n")
-                      .filter(Boolean)
-                      .map((segment, index) => (
-                        <p key={`${entry.number}-${index}`} className="reading-panel__line">
-                          {tab === "follow"
-                            ? segment
+                    {tab === "follow" ? (
+                      <div className="verse-block__follow">
+                        {(followLine || "")
+                          .split("\n")
+                          .filter(Boolean)
+                          .map((segment, index) => (
+                            <p key={`${entry.number}-follow-${index}`} className="reading-panel__line">
+                              {segment
                                 .split(/\s+/)
                                 .filter(Boolean)
                                 .map((word, wordIndex) => {
@@ -446,28 +613,49 @@ export function PrayerDetailClient({
                                       {content}
                                     </button>
                                   );
-                                })
-                            : segment
-                                .split(/\s+/)
-                                .filter(Boolean)
-                                .map((word, wordIndex) => {
-                                  const match = glossaryMap.get(normalizeWord(word));
-                                  if (!match || tab === "meaning") {
-                                    return <span key={`${word}-${wordIndex}`}>{word} </span>;
-                                  }
-                                  return (
-                                    <button
-                                      key={`${word}-${wordIndex}`}
-                                      type="button"
-                                      className="word-chip"
-                                      onClick={() => handleWordTap(word)}
-                                    >
-                                      {word}
-                                    </button>
-                                  );
                                 })}
-                        </p>
-                      ))}
+                            </p>
+                          ))}
+                        {(followMeaning || "")
+                          .split("\n")
+                          .filter(Boolean)
+                          .map((segment, index) => (
+                            <p
+                              key={`${entry.number}-meaning-${index}`}
+                              className="reading-panel__translation"
+                            >
+                              {segment}
+                            </p>
+                          ))}
+                      </div>
+                    ) : (
+                      (line || "")
+                        .split("\n")
+                        .filter(Boolean)
+                        .map((segment, index) => (
+                          <p key={`${entry.number}-${index}`} className="reading-panel__line">
+                            {segment
+                              .split(/\s+/)
+                              .filter(Boolean)
+                              .map((word, wordIndex) => {
+                                const match = glossaryMap.get(normalizeWord(word));
+                                if (!match || tab === "meaning") {
+                                  return <span key={`${word}-${wordIndex}`}>{word} </span>;
+                                }
+                                return (
+                                  <button
+                                    key={`${word}-${wordIndex}`}
+                                    type="button"
+                                    className="word-chip"
+                                    onClick={() => handleWordTap(word)}
+                                  >
+                                    {word}
+                                  </button>
+                                );
+                              })}
+                          </p>
+                        ))
+                    )}
                   </div>
                   {tab === "meaning" && glossaryMatches.length ? (
                     <div className="verse-block__gloss">
@@ -552,6 +740,50 @@ export function PrayerDetailClient({
               Open the {prayer.deity.name.en} learning path {"->"}
             </Button>
           </div>
+        </div>
+      ) : null}
+        </>
+      ) : null}
+
+      {showCompletionNudge &&
+      !suppressPrompts &&
+      currentTier === "free" &&
+      isAuthenticated &&
+      state.prayerOpenCount >= 7 &&
+      !completionPromptDismissed &&
+      !completionNudgeDismissed ? (
+        <div data-testid="prayer-completion-nudge" className="prayer-completion-nudge" role="status" aria-live="polite">
+          <button
+            type="button"
+            data-testid="nudge-dismiss"
+            className="discovery-banner__dismiss"
+            onClick={() => {
+              setShowCompletionNudge(false);
+              setCompletionNudgeDismissed(true);
+              rememberCompletionNudgeDismissal();
+              dismissPrompt("prayerCompletionPromptDismissedAt");
+            }}
+            aria-label="Dismiss prayer upgrade reminder"
+          >
+            x
+          </button>
+          <span>
+            You have {prayersRemaining} prayer{prayersRemaining === 1 ? "" : "s"} remaining on your free account.
+            Bhakt unlocks 54.
+          </span>
+          <a
+            href="/plans?highlight=bhakt"
+            className="inline-link"
+            onClick={() =>
+              trackEvent("Upgrade Clicked", {
+                from_tier: currentTier,
+                to_tier: "bhakt",
+                trigger: "prayer_completion_nudge"
+              })
+            }
+          >
+            Upgrade {"->"}
+          </a>
         </div>
       ) : null}
     </div>

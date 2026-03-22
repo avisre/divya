@@ -1,6 +1,16 @@
 import { fetchBackend } from "./backend";
 import { enumerateIsoDates } from "./panchang";
 import { enrichPrayer, enrichPrayers } from "./prayer-enrichment";
+import {
+  getFallbackDeities,
+  getFallbackFeaturedPrayers,
+  getFallbackPrayer,
+  getFallbackPrayerAudio,
+  getFallbackPrayers,
+  getFallbackPuja,
+  getFallbackPujas,
+  getFallbackTemple
+} from "./public-fallbacks";
 import type {
   AuthResponse,
   BillingCatalog,
@@ -21,17 +31,33 @@ import type {
 } from "./types";
 
 export async function getTemple() {
-  return fetchBackend<Temple>("/temple");
+  try {
+    return await fetchBackend<Temple>("/temple");
+  } catch {
+    return getFallbackTemple();
+  }
 }
 
 export async function getPrayers(params = "") {
-  const prayers = await fetchBackend<Prayer[]>(`/prayers${params}`);
-  return enrichPrayers(prayers);
+  try {
+    const prayers = await fetchBackend<Prayer[]>(`/prayers${params}`);
+    return enrichPrayers(prayers);
+  } catch {
+    return enrichPrayers(await getFallbackPrayers());
+  }
 }
 
 export async function getPrayer(idOrSlug: string) {
-  const prayer = await fetchBackend<Prayer>(`/prayers/${idOrSlug}`);
-  return enrichPrayer(prayer);
+  try {
+    const prayer = await fetchBackend<Prayer>(`/prayers/${idOrSlug}`);
+    return enrichPrayer(prayer);
+  } catch {
+    const prayer = await getFallbackPrayer(idOrSlug);
+    if (!prayer) {
+      throw new Error(`Prayer not found for ${idOrSlug}`);
+    }
+    return enrichPrayer(prayer);
+  }
 }
 
 export async function openPrayer(id: string, token: string) {
@@ -67,12 +93,20 @@ export async function interactWithPrayer(
 }
 
 export async function getPrayerAudio(id: string, token?: string | null) {
-  return fetchBackend<PrayerAudioMetadata>(`/prayers/${id}/audio`, { token });
+  try {
+    return await fetchBackend<PrayerAudioMetadata>(`/prayers/${id}/audio`, { token });
+  } catch {
+    return getFallbackPrayerAudio(id);
+  }
 }
 
 export async function getFeaturedPrayers() {
-  const prayers = await fetchBackend<Prayer[]>("/prayers/featured");
-  return enrichPrayers(prayers);
+  try {
+    const prayers = await fetchBackend<Prayer[]>("/prayers/featured");
+    return enrichPrayers(prayers);
+  } catch {
+    return enrichPrayers(await getFallbackFeaturedPrayers());
+  }
 }
 
 export async function getDailyRecommendation(timezone: string, token?: string | null) {
@@ -113,7 +147,11 @@ export async function getFestival(id: string) {
 }
 
 export async function getDeities() {
-  return fetchBackend<Array<{ _id: string; slug: string; name: { en: string } }>>("/deities");
+  try {
+    return await fetchBackend<Array<{ _id: string; slug: string; name: { en: string } }>>("/deities");
+  } catch {
+    return getFallbackDeities();
+  }
 }
 
 export async function getDeity(id: string) {
@@ -132,7 +170,11 @@ export async function getLearningModule(id: string, moduleId: string, token?: st
 }
 
 export async function getPujas(currency = "USD") {
-  return fetchBackend<Puja[]>(`/pujas?currency=${currency}`);
+  try {
+    return await fetchBackend<Puja[]>(`/pujas?currency=${currency}`);
+  } catch {
+    return getFallbackPujas(currency);
+  }
 }
 
 export async function getBillingPlans(token?: string | null) {
@@ -140,7 +182,15 @@ export async function getBillingPlans(token?: string | null) {
 }
 
 export async function getPuja(id: string, currency = "USD") {
-  return fetchBackend<Puja>(`/pujas/${id}?currency=${currency}`);
+  try {
+    return await fetchBackend<Puja>(`/pujas/${id}?currency=${currency}`);
+  } catch {
+    const puja = getFallbackPuja(id, currency);
+    if (!puja) {
+      throw new Error(`Puja not found for ${id}`);
+    }
+    return puja;
+  }
 }
 
 export async function getProfile(token: string) {

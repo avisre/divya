@@ -11,12 +11,15 @@ export function PanchangSummary({ panchang }: { panchang: Panchang }) {
         : "A steady day. Maintain your practice.";
 
   return (
-    <article className={`surface-card panchang-card panchang-card--${tone}`}>
+    <article
+      data-guided-target="panchang-summary"
+      className={`surface-card panchang-card panchang-card--${tone}`}
+    >
       <div className="surface-card__meta">
         <span className="pill pill--soft">{"Today\u2019s panchang"}</span>
         <span className="muted">{panchang.timezone}</span>
       </div>
-      <h3>
+      <h3 data-guided-panchang-tithi>
         {panchang.tithi.name}
         {panchang.tithi.paksha ? ` - ${panchang.tithi.paksha}` : ""}
       </h3>

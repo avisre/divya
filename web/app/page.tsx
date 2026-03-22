@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Hero } from "../components/content/Hero";
 import { MetricGrid } from "../components/content/MetricGrid";
 import { PanchangSummary } from "../components/content/PanchangSummary";
@@ -8,9 +9,35 @@ import { Section } from "../components/content/Section";
 import { StructuredData } from "../components/content/StructuredData";
 import { Button } from "../components/ui/Button";
 import { getFeaturedPrayers, getPanchangToday, getPujas, getTemple } from "../lib/data";
+import { DEFAULT_DISPLAY_CURRENCY } from "../lib/format";
 import { getPanchangTone, getTempleVisual, OM_SYMBOL } from "../lib/presentation";
 import { buildOrganizationSchema, buildPublicMetadata } from "../lib/seo";
+import { getOptionalSession } from "../lib/session";
 import { buildStaticBillingCatalog, formatBillingPrice, getBillingPrice } from "../lib/subscription-plans";
+
+const howItWorksSteps = [
+  {
+    title: "Choose a prayer or puja",
+    body: "Browse the prayer library or select a temple offering. Pick the occasion - a birthday, festival, or monthly observance."
+  },
+  {
+    title: "The temple performs it in your name",
+    body: "Your request joins the real temple queue. A licensed Tantri performs the offering with your family name spoken aloud."
+  },
+  {
+    title: "Receive your private sacred video",
+    body: "An HD recording of the ceremony arrives in your account within 48 hours. Yours to keep and share with family."
+  }
+] as const;
+
+const occasionCards = [
+  { label: "Upcoming festival", href: "/pujas?occasion=festival", icon: "Festival" },
+  { label: "Birthday or anniversary", href: "/pujas?occasion=life-event", icon: "Milestone" },
+  { label: "Monthly observance", href: "/pujas?occasion=monthly", icon: "Monthly" },
+  { label: "Daily prayer habit", href: "/prayers", icon: "Daily" },
+  { label: "Gift a puja", href: "/pujas", icon: "Gift" },
+  { label: "Just exploring", href: "/prayers", icon: "Explore" }
+] as const;
 
 export const metadata: Metadata = buildPublicMetadata({
   title: "Prarthana | Hindu prayer app for families abroad",
@@ -20,11 +47,12 @@ export const metadata: Metadata = buildPublicMetadata({
 });
 
 export default async function LandingPage() {
-  const [featuredPrayers, temple, panchang, pujas] = await Promise.all([
+  const [session, featuredPrayers, temple, panchang, pujas] = await Promise.all([
+    getOptionalSession(),
     getFeaturedPrayers().catch(() => []),
     getTemple().catch(() => null),
     getPanchangToday("Asia/Kolkata").catch(() => null),
-    getPujas("USD").catch(() => [])
+    getPujas(DEFAULT_DISPLAY_CURRENCY).catch(() => [])
   ]);
 
   const templeVisual = getTempleVisual(temple);
@@ -35,27 +63,35 @@ export default async function LandingPage() {
     <div className="page-stack">
       <StructuredData data={buildOrganizationSchema()} />
       <Hero
+        dataTestId="hero-section"
         variant="landing"
         eyebrow="Bhadra Bhagavathi Temple - Karunagapally"
         title="A devotional home for NRI families staying close to the temple rhythm."
         subtitle="Prarthana brings together guided prayers, daily sacred timing, temple puja requests, and private recordings for families carrying Kerala temple memory across oceans."
         actions={
-          <>
-            <Button href="/register">Begin with Prarthana</Button>
-            <Button tone="secondary" href="/login">
-              Sign in
-            </Button>
-            <Button tone="ghost" href="/plans">
-              Compare plans
-            </Button>
-          </>
+          <Button href="/register" data-testid="hero-cta-primary">
+            Start free - no card needed
+          </Button>
+        }
+        supportingContent={
+          <div className="landing-hero-support">
+            <p className="hero__supporting-note">Free to begin. Upgrade only when your family is ready.</p>
+            <p className="hero__supporting-note">
+              Serving NRI families across the UK, US, Canada, UAE, and Australia
+            </p>
+            {!session ? (
+              <Link href="/login" data-testid="hero-signin-link" className="hero__text-link">
+                Sign in
+              </Link>
+            ) : null}
+          </div>
         }
         watermark={OM_SYMBOL}
         aside={
           <div className="hero-side-stack">
             {panchang ? (
               <div className={`surface-card hero-snippet hero-snippet--${panchangTone}`}>
-                <p className="eyebrow">{"Today\u2019s panchang"}</p>
+                <p className="eyebrow">{"Today's panchang"}</p>
                 <strong>{panchang.tithi.name}</strong>
                 <span>{panchang.nakshatra.name}</span>
                 <p>{panchang.dailyGuidance?.overall || "A calm day for prayer and steady ritual rhythm."}</p>
@@ -69,6 +105,7 @@ export default async function LandingPage() {
       />
 
       <Section
+        dataTestId="temple-trust"
         title="Temple trust"
         subtitle="The web experience should answer the questions families abroad actually ask before they place their faith in it."
       >
@@ -77,30 +114,70 @@ export default async function LandingPage() {
             { label: "Temple queue", value: "Connected", helper: "Requests stay aligned to the real temple queue" },
             { label: "Temple priest", value: "Licensed Tantri", helper: "Offerings are performed by the temple tradition" },
             { label: "Sacred video", value: "48h delivery", helper: "HD recording arrives privately to your account" },
-            { label: "Family intent", value: "Name-linked", helper: "Prayers are offered in your family\u2019s name" }
+            { label: "Family intent", value: "Name-linked", helper: "Prayers are offered in your family's name" }
           ]}
         />
       </Section>
 
-      {panchang ? (
-        <Section
-          title={"Today\u2019s rhythm"}
-          subtitle="Begin from the daily sacred timing before choosing a prayer or a puja."
-        >
-          <PanchangSummary panchang={panchang} />
-        </Section>
-      ) : null}
+      <Section
+        dataTestId="how-it-works"
+        title="How Prarthana works"
+        subtitle="Your family's name reaches the temple in three steps."
+      >
+        <div className="process-grid">
+          {howItWorksSteps.map((step, index) => (
+            <article key={step.title} data-testid="how-it-works-step" className="surface-card process-card">
+              <span className="process-card__badge" aria-hidden="true">
+                {index + 1}
+              </span>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </article>
+          ))}
+        </div>
+        <div className="card-actions">
+          <Button href="/register">Begin your first prayer - it&apos;s free</Button>
+        </div>
+      </Section>
 
       <Section
+        dataTestId="occasion-entry"
+        title="What brings your family here today?"
+        subtitle="Choose the entry point that matches the reason you arrived."
+      >
+        <div className="occasion-grid">
+          {occasionCards.map((card) => (
+            <Link key={card.label} data-testid="occasion-card" href={card.href} className="surface-card occasion-card">
+              <span className="occasion-card__icon" aria-hidden="true">
+                {card.icon}
+              </span>
+              <strong>{card.label}</strong>
+              <span className="occasion-card__arrow">{"Open ->"}</span>
+            </Link>
+          ))}
+        </div>
+      </Section>
+
+      <Section
+        dataTestId="featured-prayers"
         title="Featured prayers"
         subtitle="A focused library for households that want clarity, pronunciation support, and a calm reading experience."
       >
         <div className="catalog-grid catalog-grid--two">
           {featuredPrayers.slice(0, 2).map((prayer) => (
-            <PrayerCard key={prayer._id} prayer={prayer} />
+            <PrayerCard key={prayer._id} prayer={prayer} isAuthenticated={Boolean(session)} />
           ))}
         </div>
       </Section>
+
+      {panchang ? (
+        <Section
+          title={"Today's rhythm"}
+          subtitle="Keep the daily sacred timing visible even while you explore prayers and pujas."
+        >
+          <PanchangSummary panchang={panchang} />
+        </Section>
+      ) : null}
 
       <Section
         title="Temple offerings"
@@ -108,7 +185,7 @@ export default async function LandingPage() {
       >
         <div className="catalog-grid">
           {pujas.slice(0, 3).map((puja) => (
-            <PujaCard key={puja._id} puja={puja} />
+            <PujaCard key={puja._id} puja={puja} currency={DEFAULT_DISPLAY_CURRENCY} />
           ))}
         </div>
       </Section>
@@ -129,7 +206,7 @@ export default async function LandingPage() {
                 <h3>{plan.name}</h3>
                 <p>{plan.summary}</p>
                 <div className="billing-plan-card__price">
-                  <strong>{monthly ? formatBillingPrice(monthly) : "$0.00"}</strong>
+                  <strong>{monthly ? formatBillingPrice(monthly) : "Free"}</strong>
                   <span>{monthly ? "/month" : "to begin"}</span>
                 </div>
                 <ul className="card-list billing-plan-card__perks">
@@ -146,7 +223,10 @@ export default async function LandingPage() {
         </div>
       </Section>
 
-      <Section title="Privacy declaration" subtitle="Privacy is part of the product, not something hidden in the footer.">
+      <Section
+        title="Privacy declaration"
+        subtitle="Privacy is part of the product, not something hidden in the footer."
+      >
         <div className="declaration-grid">
           <div className="surface-card declaration-card">
             <div className="ornament-line" aria-hidden="true" />

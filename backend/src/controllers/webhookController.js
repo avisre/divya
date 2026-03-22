@@ -2,7 +2,7 @@ import "dotenv/config";
 import Stripe from "stripe";
 import { PujaBooking } from "../models/PujaBooking.js";
 import { User } from "../models/User.js";
-import { sendGiftReceivedEmail, sendPaymentFailedEmail, sendWaitlistConfirmationEmail } from "../utils/email.js";
+import { sendGiftReceivedEmail, sendPaymentFailedEmail, sendSacredBookingConfirmationEmail } from "../utils/email.js";
 import {
   syncUserSubscriptionFromCheckoutSession,
   syncUserSubscriptionFromStripeSubscription
@@ -34,10 +34,10 @@ export async function handleStripeWebhook(req, res, next) {
           success: true
         });
         await booking.save();
-        await sendWaitlistConfirmationEmail({
+        await sendSacredBookingConfirmationEmail({
           to: booking.user.email,
           name: booking.user.name,
-          ctaUrl: `divya://booking/${booking._id}`,
+          ctaUrl: `${(process.env.WEB_APP_URL || "http://localhost:3000").replace(/\/+$/, "")}/bookings/${booking._id}`,
           booking: {
             bookingReference: booking.bookingReference,
             pujaName: booking.puja.name.en,
@@ -47,7 +47,8 @@ export async function handleStripeWebhook(req, res, next) {
             presentedAmount: booking.presentedAmount,
             presentedCurrency: booking.presentedCurrency,
             estimatedWaitWeeks: booking.puja.estimatedWaitWeeks,
-            heroImage: booking.temple.heroImage
+            heroImage: booking.temple.heroImage,
+            userEmail: booking.user.email
           }
         });
 

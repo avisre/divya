@@ -3,11 +3,12 @@
 import { useRouter } from "next/navigation";
 import { sendJson } from "../../lib/client-api";
 
-export function LogoutButton() {
+export function LogoutButton({ dataTestId }: { dataTestId?: string }) {
   const router = useRouter();
 
   return (
     <button
+      data-testid={dataTestId}
       className="button button--ghost"
       type="button"
       onClick={async () => {

@@ -15,6 +15,19 @@ vi.mock("../../components/forms/VideoNotificationToggle", () => ({
   VideoNotificationToggle: () => <div>Video notification toggle</div>
 }));
 
+vi.mock("../../components/ux/UxProvider", () => ({
+  useUx: () => ({
+    dismissPrompt: vi.fn(),
+    state: {}
+  })
+}));
+
+vi.mock("../../components/ux/GuidedFlowProvider", () => ({
+  useGuidedFlow: () => ({
+    suppressPrompts: false
+  })
+}));
+
 const user: UserSession = {
   id: "user-1",
   name: "Anita",
@@ -38,11 +51,27 @@ const booking: PujaBooking = {
 };
 
 describe("SacredVideoExperience", () => {
+  it("shows the Seva upgrade prompt for non-Seva users", () => {
+    render(
+      <SacredVideoExperience
+        booking={booking}
+        user={{ ...user, subscription: { tier: "bhakt" } }}
+        video={{ url: "https://signed.example/video.mp4" }}
+      />
+    );
+
+    expect(screen.getByText(/Sacred video delivery is part of Seva/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Upgrade to Seva/i })).toHaveAttribute(
+      "href",
+      "/plans?highlight=seva"
+    );
+  });
+
   it("renders the ready state with archive actions", () => {
     render(
       <SacredVideoExperience
         booking={booking}
-        user={user}
+        user={{ ...user, subscription: { tier: "seva" } }}
         video={{ url: "https://signed.example/video.mp4" }}
       />
     );
@@ -53,7 +82,13 @@ describe("SacredVideoExperience", () => {
   });
 
   it("renders the processing state when a signed video is not yet available", () => {
-    render(<SacredVideoExperience booking={{ ...booking, status: "completed" }} user={user} video={null} />);
+    render(
+      <SacredVideoExperience
+        booking={{ ...booking, status: "completed" }}
+        user={{ ...user, subscription: { tier: "seva" } }}
+        video={null}
+      />
+    );
 
     expect(screen.getByText(/recording is being prepared/i)).toBeInTheDocument();
     expect(screen.getByText(/Video notification toggle/i)).toBeInTheDocument();

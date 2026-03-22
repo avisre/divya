@@ -11,10 +11,8 @@ async function registerAndEnterSessions(page: Page) {
   await page.getByLabel("Timezone").fill("America/New_York");
   await page.getByRole("button", { name: "Create account" }).click();
 
-  await expect(page).toHaveURL(/\/onboarding/);
-  await page.getByRole("button", { name: /Skip for now/i }).click();
-  await expect(page).toHaveURL(/\/home/);
-  await page.goto("/sessions/create");
+  await expect(page).toHaveURL(/\/welcome/);
+  await page.goto("/shared-prayer/create");
   await expect(page).toHaveURL(/\/shared-prayer\/create/);
 }
 

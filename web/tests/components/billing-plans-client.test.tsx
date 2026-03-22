@@ -6,6 +6,9 @@ import type { BillingCatalog } from "../../lib/types";
 
 const sendJsonMock = vi.fn();
 const redirectMock = vi.fn();
+const searchParamState = {
+  highlight: null as string | null
+};
 
 vi.mock("../../lib/client-api", () => ({
   sendJson: (...args: unknown[]) => sendJsonMock(...args)
@@ -17,7 +20,7 @@ vi.mock("../../lib/browser", () => ({
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => ({
-    get: () => null
+    get: (key: string) => (key === "highlight" ? searchParamState.highlight : null)
   })
 }));
 
@@ -44,7 +47,7 @@ function buildEnabledCatalog(): BillingCatalog {
 }
 
 describe("BillingPlansClient", () => {
-  it("shows annual pricing with yearly labels when the billing toggle changes", () => {
+  it("shows annual pricing with yearly labels and savings when the billing toggle changes", () => {
     render(<BillingPlansClient catalog={buildEnabledCatalog()} authenticated={false} subscription={null} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Annual" }));
@@ -52,6 +55,20 @@ describe("BillingPlansClient", () => {
     expect(screen.getByText("£49.99")).toBeInTheDocument();
     expect(screen.getByText("£129.99")).toBeInTheDocument();
     expect(screen.getAllByText("/year")).toHaveLength(2);
+    expect(screen.getAllByText(/Save £/)).toHaveLength(2);
+  });
+
+  it("reveals the Seva preview panel for guests and routes them to register", () => {
+    render(<BillingPlansClient catalog={buildEnabledCatalog()} authenticated={false} subscription={null} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Bhadra Bhagavathi Temple devotional illustration" })
+    );
+
+    expect(
+      screen.getByText("Sample recording available to Seva members. Create your account to access the archive.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Create account" })).toHaveAttribute("href", "/register");
   });
 
   it("routes authenticated paid-plan checkout requests through the backend proxy", async () => {
@@ -79,5 +96,16 @@ describe("BillingPlansClient", () => {
     });
 
     expect(redirectMock).toHaveBeenCalledWith("https://checkout.stripe.com/c/pay/cs_123");
+  });
+
+  it("visually highlights the requested plan from the query string", () => {
+    searchParamState.highlight = "seva";
+
+    render(<BillingPlansClient catalog={buildEnabledCatalog()} authenticated={false} subscription={null} />);
+
+    expect(screen.getByTestId("plan-card-seva").className).toMatch(/highlight/);
+    expect(screen.getByTestId("plan-card-bhakt").className).not.toMatch(/highlight/);
+
+    searchParamState.highlight = null;
   });
 });

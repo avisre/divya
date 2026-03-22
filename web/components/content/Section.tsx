@@ -4,15 +4,17 @@ export function Section({
   eyebrow,
   title,
   subtitle,
-  children
+  children,
+  dataTestId
 }: {
   eyebrow?: string;
   title: string;
   subtitle?: string;
   children: ReactNode;
+  dataTestId?: string;
 }) {
   return (
-    <section className="section-card">
+    <section data-testid={dataTestId} className="section-card">
       <div className="section-card__header">
         <div>
           {eyebrow ? <p className="section-label">{eyebrow}</p> : null}

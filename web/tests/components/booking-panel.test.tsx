@@ -1,73 +1,123 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+const sendJson = vi.fn();
+const guidedFlowState = {
+  familyName: "",
+  suppressPrompts: false
+};
+
+vi.mock("../../lib/client-api", async () => {
+  const actual = await vi.importActual<typeof import("../../lib/client-api")>(
+    "../../lib/client-api"
+  );
+  return {
+    ...actual,
+    sendJson: (...args: unknown[]) => sendJson(...args)
+  };
+});
+
 import { BookingPanel } from "../../components/forms/BookingPanel";
-import type { Puja } from "../../lib/types";
-
-const sendJsonMock = vi.fn();
-
-vi.mock("../../lib/client-api", () => ({
-  sendJson: (...args: unknown[]) => sendJsonMock(...args)
-}));
+import { ApiRequestError } from "../../lib/client-api";
 
 vi.mock("../../components/ux/UxProvider", () => ({
   useUx: () => ({
+    dismissPrompt: vi.fn(),
     markGiftCompleted: vi.fn(),
-    markGiftStarted: vi.fn()
+    markGiftStarted: vi.fn(),
+    state: {}
   })
 }));
 
-const puja: Puja = {
-  _id: "puja-1",
-  name: { en: "Abhishekam" },
-  type: "Temple offering",
-  bestFor: ["Protection", "Family harmony", "New beginnings"]
-};
+vi.mock("../../components/ux/GuidedFlowProvider", () => ({
+  useGuidedFlow: () => ({
+    familyName: guidedFlowState.familyName,
+    suppressPrompts: guidedFlowState.suppressPrompts
+  })
+}));
 
 describe("BookingPanel", () => {
-  it("reveals recipient fields in gift mode and validates them", async () => {
-    render(<BookingPanel puja={puja} isAuthenticated />);
+  const puja = {
+    _id: "puja-1",
+    name: { en: "Bhagavathi Puja" },
+    bestFor: ["Festival blessing", "Family healing"]
+  } as any;
 
-    fireEvent.click(screen.getByRole("button", { name: /Gift to someone/i }));
-
-    expect(screen.getByLabelText(/Recipient name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Recipient email/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /Offer this puja as a gift/i }));
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Recipient name is required for a gifted puja/i)
-      ).toBeInTheDocument();
-    });
+  beforeEach(() => {
+    sendJson.mockReset();
+    sendJson.mockResolvedValue({});
+    guidedFlowState.familyName = "";
+    guidedFlowState.suppressPrompts = false;
   });
 
-  it("submits the standard waitlist flow in self mode", async () => {
-    sendJsonMock.mockResolvedValueOnce({
-      booking: {
-        _id: "booking-1",
-        bookingReference: "DIVYA-001",
-        status: "waitlisted",
-        devoteeName: "Anita",
-        createdAt: "2026-03-13T00:00:00.000Z"
-      }
+  it("shows the sign-in guard for guests", () => {
+    render(<BookingPanel puja={puja} isAuthenticated={false} currentTier="free" />);
+
+    expect(screen.getByText("Sign in to join the temple waitlist")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign in to continue" })).toHaveAttribute(
+      "href",
+      "/login?next=%2Fpujas%2Fpuja-1"
+    );
+  });
+
+  it("switches into the gift booking flow inline", () => {
+    render(<BookingPanel puja={puja} isAuthenticated currentTier="free" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /book this as a gift/i }));
+
+    expect(screen.getByLabelText("Recipient's name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Send gift confirmation to")).toBeInTheDocument();
+    expect(screen.getByLabelText("Your message")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Book gift puja" })).toBeInTheDocument();
+    expect(screen.getByText("Preferred date (optional)")).toBeInTheDocument();
+  });
+
+  it("shows the waitlist limit prompt when the backend rejects a second free waitlist", async () => {
+    sendJson.mockRejectedValueOnce(
+      new ApiRequestError({
+        message: "You have one active waitlist",
+        status: 409,
+        payload: {
+          details: {
+            reason: "waitlist_limit",
+            activeBooking: {
+              _id: "booking-1",
+              bookingReference: "DIVYA-2026-ABC",
+              status: "waitlisted",
+              puja: { _id: "puja-0", name: { en: "Abhishekam" } }
+            }
+          }
+        }
+      })
+    );
+
+    render(<BookingPanel puja={puja} isAuthenticated currentTier="free" />);
+
+    fireEvent.change(screen.getByLabelText("Devotee name"), {
+      target: { value: "Anita Nair" }
     });
-
-    render(<BookingPanel puja={puja} isAuthenticated />);
-
-    fireEvent.change(screen.getByLabelText(/Devotee name/i), { target: { value: "Anita" } });
-    fireEvent.change(screen.getByLabelText(/^Gothram$/i), { target: { value: "Kashyapa" } });
-    fireEvent.change(screen.getByLabelText(/Nakshatra/i), { target: { value: "Ashwati" } });
-    fireEvent.change(screen.getByLabelText(/Prayer intention/i), {
-      target: { value: "Protection for my family" }
+    fireEvent.change(screen.getByLabelText("Prayer intention"), {
+      target: { value: "Family blessing and peace." }
     });
+    fireEvent.click(screen.getByRole("button", { name: "Join sacred waitlist" }));
 
-    fireEvent.click(screen.getByRole("button", { name: /^Join waitlist$/i }));
+    await waitFor(() =>
+      expect(screen.getByText("You have one active waitlist")).toBeInTheDocument()
+    );
+    expect(screen.getByRole("link", { name: "Manage your current waitlist" })).toHaveAttribute(
+      "href",
+      "/bookings/booking-1"
+    );
+    expect(screen.getByRole("link", { name: "Upgrade to Bhakt" })).toHaveAttribute(
+      "href",
+      "/plans?highlight=bhakt"
+    );
+  });
 
-    await waitFor(() => {
-      expect(sendJsonMock).toHaveBeenCalledWith(
-        "/api/backend/bookings",
-        expect.objectContaining({ method: "POST" })
-      );
-    });
+  it("prefills the devotee name from the saved family name", () => {
+    guidedFlowState.familyName = "Nair Family";
+
+    render(<BookingPanel puja={puja} isAuthenticated currentTier="free" />);
+
+    expect(screen.getByTestId("booking-family-name")).toHaveValue("Nair Family");
   });
 });

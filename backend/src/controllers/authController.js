@@ -25,6 +25,22 @@ function serializeUser(user) {
     country: user.country,
     timezone: user.timezone || "",
     currency: user.currency,
+    welcomeSeenAt: user.welcomeSeenAt,
+    familyName: user.familyName || "",
+    familyNameSkipped: Boolean(user.familyNameSkipped),
+    guidedFlow: user.guidedFlow
+      ? {
+          active: Boolean(user.guidedFlow.active),
+          currentStep: Number(user.guidedFlow.currentStep || 1),
+          completedSteps: Array.isArray(user.guidedFlow.completedSteps)
+            ? user.guidedFlow.completedSteps
+            : [],
+          startedAt: user.guidedFlow.startedAt || null,
+          completedAt: user.guidedFlow.completedAt || null,
+          exitedAt: user.guidedFlow.exitedAt || null,
+          exitedOnStep: user.guidedFlow.exitedOnStep ?? null
+        }
+      : null,
     onboarding: user.onboarding,
     subscription: user.subscription,
     streak: user.streak,

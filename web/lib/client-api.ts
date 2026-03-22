@@ -3,6 +3,30 @@
 const CSRF_COOKIE = "divya_csrf";
 const CSRF_HEADER = "x-csrf-token";
 
+export class ApiRequestError extends Error {
+  status: number;
+  code?: string;
+  payload: Record<string, unknown>;
+
+  constructor({
+    message,
+    status,
+    code,
+    payload
+  }: {
+    message: string;
+    status: number;
+    code?: string;
+    payload: Record<string, unknown>;
+  }) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.code = code;
+    this.payload = payload;
+  }
+}
+
 function readCookie(name: string) {
   const cookie = document.cookie
     .split(";")
@@ -13,11 +37,17 @@ function readCookie(name: string) {
 }
 
 export async function readJson<T>(response: Response): Promise<T> {
-  const payload = await response.json().catch(() => ({}));
+  const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok) {
     const message =
       typeof payload?.message === "string" ? payload.message : "Request failed.";
-    throw new Error(message);
+    const code = typeof payload?.code === "string" ? payload.code : undefined;
+    throw new ApiRequestError({
+      message,
+      status: response.status,
+      code,
+      payload
+    });
   }
   return payload as T;
 }

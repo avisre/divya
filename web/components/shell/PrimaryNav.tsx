@@ -7,7 +7,7 @@ import { cn } from "../../lib/cn";
 export function PrimaryNav({
   links
 }: {
-  links: Array<{ href: string; label: string }>;
+  links: Array<{ href: string; label: string; dataTestId?: string }>;
 }) {
   const pathname = usePathname();
 
@@ -24,6 +24,7 @@ export function PrimaryNav({
           <Link
             key={`${link.href}-${link.label}`}
             href={link.href}
+            data-testid={link.dataTestId}
             className={cn("site-nav__link", isActive && "site-nav__link--active")}
           >
             {link.label}

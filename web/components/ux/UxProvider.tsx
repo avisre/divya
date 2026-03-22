@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -30,7 +31,11 @@ type PromptKey =
   | "firstCalendarHintDismissedAt"
   | "learningPromptDismissedAt"
   | "videoPromptDismissedAt"
-  | "giftPromptDismissedAt";
+  | "giftPromptDismissedAt"
+  | "prayerPaywallDismissedAt"
+  | "waitlistPaywallDismissedAt"
+  | "sacredVideoPaywallDismissedAt"
+  | "prayerCompletionPromptDismissedAt";
 
 type UxContextValue = {
   state: UxState;
@@ -367,9 +372,199 @@ export function UxProvider({
     return timestampAnchor - completionTime < 7 * 24 * 60 * 60 * 1000;
   }, [state.onboardingCompletedAt, state.onboardingCompletedBannerDismissedAt, timestampAnchor]);
 
-  const commit = (patch: Partial<UxState>) => {
+  const commit = useCallback((patch: Partial<UxState>) => {
     dispatch({ type: "patch", patch });
-  };
+  }, []);
+
+  const completeOnboarding = useCallback((details?: {
+    selection?: "pray" | "book" | "together" | "learn";
+    country?: string;
+    timezone?: string;
+    deitySlugs?: string[];
+  }) => {
+    dispatch({
+      type: "update",
+      updater: (current) =>
+        getNextState(current, {
+          onboardingSelection: details?.selection || current.onboardingSelection,
+          onboardingCountry: details?.country || current.onboardingCountry,
+          onboardingTimezone: details?.timezone || current.onboardingTimezone,
+          onboardingDeitySlugs:
+            details?.deitySlugs && details.deitySlugs.length
+              ? details.deitySlugs
+              : current.onboardingDeitySlugs
+        })
+    });
+  }, []);
+
+  const skipOnboarding = useCallback(() => {
+    commit({ onboardingSkippedAt: nowIso() });
+    trackEvent("onboarding_skipped", { source: "route" });
+  }, [commit]);
+
+  const markPrayerOpened = useCallback((slug: string) => {
+    if (!slug) return;
+    dispatch({
+      type: "update",
+      updater: (current) => {
+        if (current.firstPrayerSlug === slug && current.prayerOpenCount > 0) {
+          return current;
+        }
+        const isFirst = current.prayerOpenCount === 0;
+        if (isFirst) {
+          trackEvent("first_prayer_opened", { slug });
+        }
+        return getNextState(current, {
+          firstPrayerSlug: current.firstPrayerSlug || slug,
+          firstPrayerOpenedAt: current.firstPrayerOpenedAt || nowIso(),
+          prayerOpenCount: current.prayerOpenCount + 1
+        });
+      }
+    });
+  }, []);
+
+  const markPrayer60s = useCallback((slug: string) => {
+    dispatch({
+      type: "update",
+      updater: (current) => {
+        if (current.firstPrayer60sAt) return current;
+        trackEvent("first_prayer_60s", { slug });
+        return getNextState(current, {
+          firstPrayer60sAt: nowIso()
+        });
+      }
+    });
+  }, []);
+
+  const markVisitedPujas = useCallback(() => {
+    dispatch({
+      type: "update",
+      updater: (current) =>
+        current.visitedPujas ? current : getNextState(current, { visitedPujas: true })
+    });
+  }, []);
+
+  const dismissPrompt = useCallback((key: PromptKey) => {
+    commit({ [key]: nowIso() } as Partial<UxState>);
+  }, [commit]);
+
+  const dismissFirstPrayerBanner = useCallback(() => {
+    commit({ firstPrayerBannerDismissedAt: nowIso() });
+  }, [commit]);
+
+  const markSharedPrayerCreated = useCallback(() => {
+    dispatch({
+      type: "update",
+      updater: (current) => {
+        if (current.sharedPrayerCreatedAt) return current;
+        trackEvent("shared_session_created");
+        return getNextState(current, { sharedPrayerCreatedAt: nowIso() });
+      }
+    });
+  }, []);
+
+  const markLearningPathOpened = useCallback((deityId: string) => {
+    dispatch({
+      type: "update",
+      updater: (current) => {
+        if (current.learningPathOpenedAt) return current;
+        trackEvent("learning_path_opened", { deityId });
+        return getNextState(current, { learningPathOpenedAt: nowIso() });
+      }
+    });
+  }, []);
+
+  const markGiftStarted = useCallback(() => {
+    dispatch({
+      type: "update",
+      updater: (current) => {
+        if (current.giftStartedAt) return current;
+        trackEvent("gift_booking_started");
+        return getNextState(current, { giftStartedAt: nowIso() });
+      }
+    });
+  }, []);
+
+  const markGiftCompleted = useCallback(() => {
+    dispatch({
+      type: "update",
+      updater: (current) => {
+        if (current.giftCompletedAt) return current;
+        trackEvent("gift_booking_completed");
+        return getNextState(current, { giftCompletedAt: nowIso() });
+      }
+    });
+  }, []);
+
+  const markVideoWatched = useCallback((bookingId?: string) => {
+    dispatch({
+      type: "update",
+      updater: (current) => {
+        if (current.videoWatchedAt) return current;
+        trackEvent("video_watched", { bookingId: bookingId || null });
+        return getNextState(current, { videoWatchedAt: nowIso() });
+      }
+    });
+  }, []);
+
+  const markFeatureUsed = useCallback((feature: UxFeatureKey) => {
+    if (feature === "shared_prayer") {
+      dispatch({
+        type: "update",
+        updater: (current) =>
+          current.sharedPrayerCreatedAt
+            ? current
+            : getNextState(current, { sharedPrayerCreatedAt: nowIso() })
+      });
+      return;
+    }
+    if (feature === "gift_puja") {
+      dispatch({
+        type: "update",
+        updater: (current) =>
+          current.giftCompletedAt ? current : getNextState(current, { giftCompletedAt: nowIso() })
+      });
+      return;
+    }
+    if (feature === "learning_path") {
+      dispatch({
+        type: "update",
+        updater: (current) =>
+          current.learningPathOpenedAt
+            ? current
+            : getNextState(current, { learningPathOpenedAt: nowIso() })
+      });
+      return;
+    }
+    if (feature === "sacred_video") {
+      dispatch({
+        type: "update",
+        updater: (current) =>
+          current.videoWatchedAt ? current : getNextState(current, { videoWatchedAt: nowIso() })
+      });
+    }
+  }, []);
+
+  const announceGamification = useCallback((result: GamificationResult | null | undefined) => {
+    if (!result) return;
+    if (result.milestonesEarned?.length) {
+      const nextToasts = result.milestonesEarned.map((milestone, index) => ({
+        ...milestone,
+        id: `${milestone.key}-${milestone.earnedAt || Date.now()}-${index}`
+      }));
+      playSoftBell();
+      setToastQueue((current) => current.concat(nextToasts));
+    }
+    if (result.tierUpgrade?.currentTier) {
+      setTierUpgrade({
+        key: result.tierUpgrade.currentTier.key,
+        icon: result.tierUpgrade.currentTier.icon,
+        description: result.tierUpgrade.currentTier.description,
+        prayers: Number(result.stats?.prayersCompletedCount || 0),
+        modules: Number(result.stats?.modulesCompletedCount || 0)
+      });
+    }
+  }, []);
 
   const value = useMemo<UxContextValue>(
     () => ({
@@ -377,155 +572,40 @@ export function UxProvider({
       ready,
       showWelcomeOverlay: false,
       showSetupCompleteBanner,
-      completeOnboarding: (details) => {
-        commit({
-          onboardingSelection: details?.selection || state.onboardingSelection,
-          onboardingCountry: details?.country || state.onboardingCountry,
-          onboardingTimezone: details?.timezone || state.onboardingTimezone,
-          onboardingDeitySlugs:
-            details?.deitySlugs && details.deitySlugs.length
-              ? details.deitySlugs
-              : state.onboardingDeitySlugs
-        });
-      },
-      skipOnboarding: () => {
-        commit({ onboardingSkippedAt: nowIso() });
-        trackEvent("onboarding_skipped", { source: "route" });
-      },
-      markPrayerOpened: (slug) => {
-        if (!slug) return;
-        dispatch({
-          type: "update",
-          updater: (current) => {
-          if (current.firstPrayerSlug === slug && current.prayerOpenCount > 0) {
-            return current;
-          }
-          const isFirst = current.prayerOpenCount === 0;
-          if (isFirst) {
-            trackEvent("first_prayer_opened", { slug });
-          }
-          return getNextState(current, {
-            firstPrayerSlug: current.firstPrayerSlug || slug,
-            firstPrayerOpenedAt: current.firstPrayerOpenedAt || nowIso(),
-            prayerOpenCount: current.prayerOpenCount + 1
-          });
-          }
-        });
-      },
-      markPrayer60s: (slug) => {
-        dispatch({
-          type: "update",
-          updater: (current) => {
-          if (current.firstPrayer60sAt) return current;
-          trackEvent("first_prayer_60s", { slug });
-          return getNextState(current, {
-            firstPrayer60sAt: nowIso()
-          });
-          }
-        });
-      },
-      markVisitedPujas: () => {
-        dispatch({
-          type: "update",
-          updater: (current) =>
-            current.visitedPujas ? current : getNextState(current, { visitedPujas: true })
-        });
-      },
-      dismissPrompt: (key) => {
-        commit({ [key]: nowIso() } as Partial<UxState>);
-      },
-      dismissFirstPrayerBanner: () => {
-        commit({ firstPrayerBannerDismissedAt: nowIso() });
-      },
-      markSharedPrayerCreated: () => {
-        dispatch({
-          type: "update",
-          updater: (current) => {
-          if (current.sharedPrayerCreatedAt) return current;
-          trackEvent("shared_session_created");
-          return getNextState(current, { sharedPrayerCreatedAt: nowIso() });
-          }
-        });
-      },
-      markLearningPathOpened: (deityId) => {
-        dispatch({
-          type: "update",
-          updater: (current) => {
-          if (current.learningPathOpenedAt) return current;
-          trackEvent("learning_path_opened", { deityId });
-          return getNextState(current, { learningPathOpenedAt: nowIso() });
-          }
-        });
-      },
-      markGiftStarted: () => {
-        dispatch({
-          type: "update",
-          updater: (current) => {
-          if (current.giftStartedAt) return current;
-          trackEvent("gift_booking_started");
-          return getNextState(current, { giftStartedAt: nowIso() });
-          }
-        });
-      },
-      markGiftCompleted: () => {
-        dispatch({
-          type: "update",
-          updater: (current) => {
-          if (current.giftCompletedAt) return current;
-          trackEvent("gift_booking_completed");
-          return getNextState(current, { giftCompletedAt: nowIso() });
-          }
-        });
-      },
-      markVideoWatched: (bookingId) => {
-        dispatch({
-          type: "update",
-          updater: (current) => {
-          if (current.videoWatchedAt) return current;
-          trackEvent("video_watched", { bookingId: bookingId || null });
-          return getNextState(current, { videoWatchedAt: nowIso() });
-          }
-        });
-      },
-      markFeatureUsed: (feature) => {
-        if (feature === "shared_prayer") {
-          commit({ sharedPrayerCreatedAt: state.sharedPrayerCreatedAt || nowIso() });
-          return;
-        }
-        if (feature === "gift_puja") {
-          commit({ giftCompletedAt: state.giftCompletedAt || nowIso() });
-          return;
-        }
-        if (feature === "learning_path") {
-          commit({ learningPathOpenedAt: state.learningPathOpenedAt || nowIso() });
-          return;
-        }
-        if (feature === "sacred_video") {
-          commit({ videoWatchedAt: state.videoWatchedAt || nowIso() });
-        }
-      },
-      announceGamification: (result) => {
-        if (!result) return;
-        if (result.milestonesEarned?.length) {
-          const nextToasts = result.milestonesEarned.map((milestone, index) => ({
-            ...milestone,
-            id: `${milestone.key}-${milestone.earnedAt || Date.now()}-${index}`
-          }));
-          playSoftBell();
-          setToastQueue((current) => current.concat(nextToasts));
-        }
-        if (result.tierUpgrade?.currentTier) {
-          setTierUpgrade({
-            key: result.tierUpgrade.currentTier.key,
-            icon: result.tierUpgrade.currentTier.icon,
-            description: result.tierUpgrade.currentTier.description,
-            prayers: Number(result.stats?.prayersCompletedCount || 0),
-            modules: Number(result.stats?.modulesCompletedCount || 0)
-          });
-        }
-      }
+      completeOnboarding,
+      skipOnboarding,
+      markPrayerOpened,
+      markPrayer60s,
+      markVisitedPujas,
+      dismissPrompt,
+      dismissFirstPrayerBanner,
+      markSharedPrayerCreated,
+      markLearningPathOpened,
+      markGiftStarted,
+      markGiftCompleted,
+      markVideoWatched,
+      markFeatureUsed,
+      announceGamification
     }),
-    [ready, showSetupCompleteBanner, state]
+    [
+      announceGamification,
+      completeOnboarding,
+      dismissFirstPrayerBanner,
+      dismissPrompt,
+      markFeatureUsed,
+      markGiftCompleted,
+      markGiftStarted,
+      markLearningPathOpened,
+      markPrayer60s,
+      markPrayerOpened,
+      markSharedPrayerCreated,
+      markVideoWatched,
+      markVisitedPujas,
+      ready,
+      showSetupCompleteBanner,
+      skipOnboarding,
+      state
+    ]
   );
 
   function closeWelcome(skipped: boolean) {

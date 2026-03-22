@@ -2,9 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { chromium } from "@playwright/test";
+import generatedPrayerCatalog from "../lib/generated-prayer-catalog.json" with { type: "json" };
 
 const siteUrl = process.argv[2] || "http://127.0.0.1:3104";
-const backendUrl = process.env.BACKEND_API_BASE_URL || `${siteUrl}/api`;
+const backendUrl = process.env.BACKEND_API_BASE_URL || `${siteUrl}/api/backend`;
 const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 const outputRoot = path.join(process.cwd(), "artifacts", "responsive-audit", `responsive_${stamp}`);
 const reportPath = path.join(outputRoot, "REPORT.md");
@@ -20,7 +21,7 @@ function sanitize(value) {
 }
 
 async function gotoStable(page, url) {
-  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
   await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => null);
   await page.waitForTimeout(600);
 }
@@ -28,7 +29,7 @@ async function gotoStable(page, url) {
 async function fetchJson(pathname) {
   const response = await fetch(`${backendUrl}${pathname}`);
   if (!response.ok) {
-    throw new Error(`Backend request failed for ${pathname}: ${response.status()}`);
+    throw new Error(`Backend request failed for ${pathname}: ${response.status}`);
   }
   return response.json();
 }
@@ -43,17 +44,25 @@ async function getCsrfHeaders(request) {
 }
 
 async function loadRouteSeeds() {
-  const [prayers, pujas, deities] = await Promise.all([
-    fetchJson("/prayers?limit=3"),
-    fetchJson("/pujas?currency=USD"),
-    fetchJson("/deities")
-  ]);
+  try {
+    const [prayers, pujas, deities] = await Promise.all([
+      fetchJson("/prayers?limit=3"),
+      fetchJson("/pujas?currency=USD"),
+      fetchJson("/deities")
+    ]);
 
-  return {
-    prayerSlug: prayers?.[0]?.slug,
-    pujaId: pujas?.[0]?._id,
-    deityId: deities?.[0]?._id
-  };
+    return {
+      prayerSlug: prayers?.[0]?.slug,
+      pujaId: pujas?.[0]?._id,
+      deityId: deities?.[0]?._id
+    };
+  } catch {
+    return {
+      prayerSlug: generatedPrayerCatalog?.[0]?.slug || "gayatri-mantra",
+      pujaId: "abhishekam",
+      deityId: "bhadra-bhagavathi"
+    };
+  }
 }
 
 async function registerAccount(context) {
@@ -172,18 +181,32 @@ async function main() {
 
     for (const route of routes) {
       const page = route.auth ? authPage : publicPage;
-      await gotoStable(page, `${siteUrl}${route.path}`);
-      await page.screenshot({
-        path: path.join(folder, `${sanitize(route.key)}.png`),
-        fullPage: true
-      });
+      try {
+        await gotoStable(page, `${siteUrl}${route.path}`);
+        await page.screenshot({
+          path: path.join(folder, `${sanitize(route.key)}.png`),
+          fullPage: true
+        });
 
-      const issues = await collectLayoutIssues(page);
-      results.push({
-        viewport: viewport.key,
-        route: route.path,
-        issues
-      });
+        const issues = await collectLayoutIssues(page);
+        results.push({
+          viewport: viewport.key,
+          route: route.path,
+          issues,
+          error: null
+        });
+      } catch (error) {
+        results.push({
+          viewport: viewport.key,
+          route: route.path,
+          issues: {
+            horizontalOverflow: null,
+            offscreen: [],
+            textOverflow: []
+          },
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
     }
 
     await publicContext.close();
@@ -206,6 +229,12 @@ async function main() {
 
   for (const result of results) {
     lines.push(`### ${result.viewport} ${result.route}`);
+    if (result.error) {
+      lines.push(`- Route audit error: ${result.error}`);
+      lines.push("");
+      continue;
+    }
+
     lines.push(`- Horizontal overflow: ${result.issues.horizontalOverflow}`);
     if (result.issues.offscreen.length) {
       lines.push("- Offscreen elements:");

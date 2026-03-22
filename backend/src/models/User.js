@@ -151,6 +151,19 @@ const audioComingSoonSubscriptionSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const guidedFlowSchema = new mongoose.Schema(
+  {
+    active: { type: Boolean, default: false },
+    currentStep: { type: Number, default: 1 },
+    completedSteps: [{ type: Number }],
+    startedAt: Date,
+    completedAt: Date,
+    exitedAt: Date,
+    exitedOnStep: { type: Number, default: null }
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, unique: true, required: true, lowercase: true, trim: true },
@@ -162,6 +175,10 @@ const userSchema = new mongoose.Schema({
   country: { type: String, default: "US" },
   timezone: { type: String, trim: true },
   currency: { type: String, default: "USD" },
+  welcomeSeenAt: Date,
+  familyName: { type: String, trim: true, default: null },
+  familyNameSkipped: { type: Boolean, default: false },
+  guidedFlow: { type: guidedFlowSchema, default: () => ({ currentStep: 1, completedSteps: [] }) },
   onboarding: onboardingSchema,
   preferredDeity: { type: mongoose.Schema.Types.ObjectId, ref: "Deity" },
   preferredLanguage: {

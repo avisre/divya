@@ -7,9 +7,7 @@ function buildCsp() {
   const connectSrc = [
     "'self'",
     BACKEND_ORIGIN,
-    "https://www.google-analytics.com",
-    "https://*.google-analytics.com",
-    "https://www.googletagmanager.com",
+    "https://plausible.io",
     "https:",
     "wss:"
   ];
@@ -17,7 +15,7 @@ function buildCsp() {
   const scriptSrc = [
     "'self'",
     "'unsafe-inline'",
-    "https://www.googletagmanager.com"
+    "https://plausible.io"
   ];
 
   if (!IS_PRODUCTION) {

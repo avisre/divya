@@ -6,29 +6,41 @@ type AnalyticsProperties = Record<string, string | number | boolean | null | und
 
 declare global {
   interface Window {
-    dataLayer?: unknown[];
-    gtag?: (...args: unknown[]) => void;
+    plausible?: (eventName: string, options?: { props?: Record<string, unknown>; u?: string }) => void;
   }
 }
 
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() || "G-MH6180XE50";
+export const PLAUSIBLE_DOMAIN =
+  process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN?.trim() || "praarthana.com";
+export const PLAUSIBLE_API_HOST =
+  process.env.NEXT_PUBLIC_PLAUSIBLE_API_HOST?.trim().replace(/\/+$/, "") || "https://plausible.io";
 
 function sanitizeProperties(properties: AnalyticsProperties) {
-  return Object.fromEntries(
-    Object.entries(properties).filter(([, value]) => value !== undefined)
+  return Object.fromEntries(Object.entries(properties).filter(([, value]) => value !== undefined));
+}
+
+function isLocalAuditSession() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (process.env.NODE_ENV === "test") {
+    return false;
+  }
+
+  return (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
   );
 }
 
 export function trackPageView(path: string) {
-  if (typeof window === "undefined" || !window.gtag || !GA_MEASUREMENT_ID) {
+  if (typeof window === "undefined" || !window.plausible) {
     return;
   }
 
-  window.gtag("config", GA_MEASUREMENT_ID, {
-    page_path: path,
-    page_location: window.location.href,
-    page_title: document.title
-  });
+  const url = new URL(path, window.location.origin).toString();
+  window.plausible("pageview", { u: url });
 }
 
 export function trackEvent(name: string, properties: AnalyticsProperties = {}) {
@@ -36,8 +48,12 @@ export function trackEvent(name: string, properties: AnalyticsProperties = {}) {
 
   const sanitizedProperties = sanitizeProperties(properties);
 
-  if (window.gtag && GA_MEASUREMENT_ID) {
-    window.gtag("event", name, sanitizedProperties);
+  if (window.plausible) {
+    window.plausible(name, { props: sanitizedProperties });
+  }
+
+  if (isLocalAuditSession()) {
+    return;
   }
 
   void sendJson("/api/backend/observability/events", {

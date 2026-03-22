@@ -242,16 +242,6 @@ export function PrayerAudioPlayer({
   }, []);
 
   useEffect(() => {
-    nearCompleteFiredRef.current = false;
-    setDuration(0);
-    setCurrentTime(0);
-    setIsPlaying(false);
-    setLoadState("idle");
-    setErrorMessage(null);
-    setShowNativeControls(false);
-  }, [src]);
-
-  useEffect(() => {
     const audio = audioRef.current;
     return () => {
       if (!audio) return;

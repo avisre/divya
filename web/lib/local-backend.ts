@@ -36,7 +36,6 @@ const DEFAULT_GAMIFICATION_TIER = {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __prarthanaLocalBackendStore: LocalBackendStore | undefined;
 }
 

@@ -49,9 +49,10 @@ export function Button(props: ButtonProps) {
   }
 
   const nativeProps = rest as Omit<NativeButtonProps, keyof BaseProps | "children">;
+  const buttonType = nativeProps.type ?? "button";
 
   return (
-    <button {...nativeProps} className={buttonClassName}>
+    <button {...nativeProps} type={buttonType} className={buttonClassName}>
       {leading ? <span className="button__leading">{leading}</span> : null}
       <span>{children}</span>
     </button>

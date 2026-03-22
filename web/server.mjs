@@ -37,6 +37,21 @@ async function startUnifiedServer() {
   let nextHandler = null;
   let nextPreparePromise = null;
 
+  app.use((req, res, next) => {
+    const nextActionHeader = req.headers["next-action"];
+    const isPageRequest = !req.path.startsWith("/api/");
+
+    if (req.method === "POST" && nextActionHeader && isPageRequest) {
+      console.warn(
+        `Stale Next Server Action request received for ${req.originalUrl || req.url}; redirecting to a fresh GET.`
+      );
+      res.setHeader("Cache-Control", "no-store");
+      return res.redirect(303, req.originalUrl || "/");
+    }
+
+    next();
+  });
+
   app.all("*", async (req, res) => {
     if (!nextPreparePromise) {
       res.status(503).send("Web runtime is starting.");

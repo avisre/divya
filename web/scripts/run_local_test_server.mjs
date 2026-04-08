@@ -2,7 +2,7 @@ import process from "node:process";
 
 const port = process.env.PORT || "3104";
 
-process.env.MONGODB_URI = process.env.MONGODB_URI?.trim() || "mongodb+srv://project:project@cluster0.kos1k7l.mongodb.net/GOD1";
+process.env.MONGODB_URI = process.env.MONGODB_URI?.trim() || ;
 process.env.JWT_SECRET = process.env.JWT_SECRET?.trim() || "minimum-32-character-secret-key-2026";
 process.env.JWT_EXPIRE = process.env.JWT_EXPIRE?.trim() || "30d";
 process.env.NODE_ENV = process.env.NODE_ENV?.trim() || "production";

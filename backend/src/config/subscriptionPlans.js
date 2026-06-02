@@ -76,6 +76,36 @@ export const SUBSCRIPTION_PLAN_DEFINITIONS = {
         savingsLabel: "Save 17% annually"
       }
     }
+  },
+  vidya: {
+    tier: "vidya",
+    name: "Vidya",
+    summary: "For seekers walking the deep journey — the full Discover Hinduism path, every Deva, every Devi, every story.",
+    badge: "For seekers",
+    cta: "Choose Vidya",
+    footnote: "Best for those drawn to the deeper currents of dharma.",
+    perks: [
+      "Everything in Seva",
+      "Full Discover Hinduism scripture library",
+      "Trimurti, Devi Shakti, and Vishnu Avatar deep-dives",
+      "Major Gods & Major Goddesses full lore",
+      "Krishna & the Gita, symbols, sadhana practices"
+    ],
+    prices: {
+      [SUBSCRIPTION_INTERVALS.MONTH]: {
+        amountCents: 1400,
+        currency: BASE_CURRENCY,
+        envKey: "STRIPE_VIDYA_MONTHLY_PRICE_ID",
+        lookupKey: "prarthana_vidya_monthly"
+      },
+      [SUBSCRIPTION_INTERVALS.YEAR]: {
+        amountCents: 14000,
+        currency: BASE_CURRENCY,
+        envKey: "STRIPE_VIDYA_ANNUAL_PRICE_ID",
+        lookupKey: "prarthana_vidya_annual",
+        savingsLabel: "Save 17% annually"
+      }
+    }
   }
 };
 

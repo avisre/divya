@@ -78,7 +78,7 @@ const prayerSchema = new mongoose.Schema(
     audioLicenseTag: { type: String, default: "licensed_devotional" },
     contentVersion: { type: Number, default: 1 },
     contentChecksum: String,
-    requiredTier: { type: String, enum: ["free", "bhakt", "seva"], default: "free" },
+    requiredTier: { type: String, enum: ["free", "bhakt", "seva", "vidya"], default: "free" },
     coverImageUrl: String,
     recommendedRepetitions: [{ type: Number }],
     isPremium: { type: Boolean, default: false },

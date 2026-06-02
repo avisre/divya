@@ -36,7 +36,7 @@ const subscriptionSchema = new mongoose.Schema(
   {
     tier: {
       type: String,
-      enum: ["free", "bhakt", "seva"],
+      enum: ["free", "bhakt", "seva", "vidya"],
       default: "free"
     },
     revenueCatId: String,

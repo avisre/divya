@@ -39,6 +39,7 @@ function slugify(value) {
 }
 
 function tierRank(tier) {
+  if (tier === "vidya") return 4;
   if (tier === "seva") return 3;
   if (tier === "bhakt") return 2;
   return 1;

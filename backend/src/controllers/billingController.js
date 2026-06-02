@@ -26,8 +26,8 @@ export async function getBillingPlans(req, res, next) {
 export async function createCheckoutSession(req, res, next) {
   try {
     const tier = String(req.body?.tier || "").trim().toLowerCase();
-    if (!["bhakt", "seva"].includes(tier)) {
-      throw createValidationError("tier must be bhakt or seva");
+    if (!["bhakt", "seva", "vidya"].includes(tier)) {
+      throw createValidationError("tier must be bhakt, seva, or vidya");
     }
 
     const session = await createSubscriptionCheckoutSession({

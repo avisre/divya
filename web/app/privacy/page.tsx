@@ -101,7 +101,7 @@ export default function PrivacyPage() {
           </div>
           <div className="surface-card">
             <h3>We do not sell or rent your data</h3>
-            <p>We do not sell personal data, share it for cross-context behavioural advertising, or rent it. California residents have a right to direct us not to "sell" or "share" personal data under the CCPA / CPRA — we already do neither.</p>
+            <p>We do not sell personal data, share it for cross-context behavioural advertising, or rent it. California residents have a right to direct us not to &quot;sell&quot; or &quot;share&quot; personal data under the CCPA / CPRA — we already do neither.</p>
           </div>
         </div>
       </Section>

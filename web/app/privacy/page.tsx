@@ -2,7 +2,7 @@ import { Hero } from "../../components/content/Hero";
 import { Section } from "../../components/content/Section";
 
 const LAST_UPDATED = "June 7, 2026";
-const CONTACT_EMAIL = "avinashsreekumar007@gmail.com";
+const CONTACT_EMAIL = "support@stockportfolio.pro";
 const DEVELOPER_NAME = "FPS-77";
 const APP_NAME = "Praarthana: Hindu Prayers";
 const APP_PACKAGE = "com.praarthana.prayerapp.avinash";
